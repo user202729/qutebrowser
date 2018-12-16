@@ -27,7 +27,7 @@ from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
 from qutebrowser.browser import shared
 from qutebrowser.browser.webengine import webenginesettings, certificateerror
 from qutebrowser.config import config
-from qutebrowser.utils import log, debug, usertypes, objreg, qtutils
+from qutebrowser.utils import log, debug, usertypes, objreg, qtutils, message
 from qutebrowser.misc import miscwidgets
 from qutebrowser.qt import sip
 
@@ -261,3 +261,20 @@ class WebEnginePage(QWebEnginePage):
                                                  is_main_frame=is_main_frame)
         self.navigation_request.emit(navigation)
         return navigation.accepted
+
+    def chooseFiles(self, mode, oldFiles, acceptedMimeTypes):
+        if mode == QWebEnginePage.FileSelectOpenMultiple:
+            return super().chooseFiles(mode, oldFiles, acceptedMimeTypes)
+
+        q = usertypes.Question(self)
+        q.title = "Open file:"
+        q.text = "Please select a file"
+        q.mode = usertypes.PromptMode.upload
+        q.completed.connect(q.deleteLater)
+        q.default = '/'
+
+        message.global_bridge.ask(q, blocking=True)
+        if q.answer is None:
+            return []
+        else:
+            return [q.answer]

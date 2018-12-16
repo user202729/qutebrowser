@@ -320,6 +320,7 @@ class PromptContainer(QWidget):
             usertypes.PromptMode.yesno: YesNoPrompt,
             usertypes.PromptMode.text: LineEditPrompt,
             usertypes.PromptMode.user_pwd: AuthenticationPrompt,
+            usertypes.PromptMode.upload: FilenamePrompt,
             usertypes.PromptMode.download: DownloadFilenamePrompt,
             usertypes.PromptMode.alert: AlertPrompt,
         }

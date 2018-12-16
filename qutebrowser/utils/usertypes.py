@@ -207,7 +207,7 @@ class NeighborList(collections.abc.Sequence):
 
 # The mode of a Question.
 PromptMode = enum.Enum('PromptMode', ['yesno', 'text', 'user_pwd', 'alert',
-                                      'download'])
+                                      'upload', 'download'])
 
 
 class ClickTarget(enum.Enum):
