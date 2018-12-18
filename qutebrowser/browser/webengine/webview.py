@@ -23,7 +23,7 @@ import tempfile
 
 from PyQt5.QtCore import pyqtSignal, QUrl, QEventLoop, PYQT_VERSION
 from PyQt5.QtGui import QPalette
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QWidget, QFileDialog
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
 
 from qutebrowser.browser import shared
@@ -266,6 +266,14 @@ class WebEnginePage(QWebEnginePage):
 
     def chooseFiles(self, mode, old_files, accepted_mimetypes):
         """Override chooseFiles to (optionally) invoke custom file uploader."""
+
+        if mode == QWebEnginePage.FileSelectOpen:
+            return [QFileDialog.getOpenFileName(
+                    self.view(), options=QFileDialog.DontUseNativeDialog)[0]]
+        else:
+            return QFileDialog.getOpenFileNames(
+                    self.view(), options=QFileDialog.DontUseNativeDialog)[0]
+
         handler = config.val.fileselect.handler
         if handler == "default":
             return super().chooseFiles(mode, old_files, accepted_mimetypes)
