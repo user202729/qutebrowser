@@ -452,15 +452,18 @@ class ConfigAPI:
                         .format(key=key))
                 self.errors.append(configexc.ConfigErrorDesc(
                     "While unbinding '{}'".format(key), text))
-                self._keyconfig.unbind(seq, mode=mode)
+                # update_mutables should not be called here for better
+                # performance, and it will be called in finalize anyway
+                self._keyconfig.unbind(seq, mode=mode, update_mutables=False)
             else:
-                self._keyconfig.bind(seq, command, mode=mode)
+                self._keyconfig.bind(seq, command, mode=mode,
+                        update_mutables=False)
 
     def unbind(self, key: str, mode: str = 'normal') -> None:
         """Unbind a key from a command, with an optional key mode."""
         with self._handle_error('unbinding', key):
             seq = keyutils.KeySequence.parse(key)
-            self._keyconfig.unbind(seq, mode=mode)
+            self._keyconfig.unbind(seq, mode=mode, update_mutables=False)
 
     def source(self, filename: str) -> None:
         """Read the given config file from disk."""
