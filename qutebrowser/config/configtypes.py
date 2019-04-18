@@ -199,6 +199,8 @@ class BaseType:
         Arguments:
             value: The value to check.
         """
+        return
+
         assert isinstance(value, str), value
         if not value and not self.none_ok:
             raise configexc.ValidationError(value, "may not be empty!")
@@ -219,6 +221,8 @@ class BaseType:
 
         This is used for values passed to json.dump, as it can't handle those.
         """
+        return
+
         if not isinstance(value, str):
             return
         if any(ord(c) > 0xFFFF for c in value):
