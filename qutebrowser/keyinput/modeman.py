@@ -349,6 +349,11 @@ class ModeManager(QObject):
             QEvent.ShortcutOverride:
                 functools.partial(self._handle_keypress, dry_run=True),
         }
+        #print({
+        #    QEvent.KeyPress        :'KeyPress',
+        #    QEvent.KeyRelease      :'KeyRelease',
+        #    QEvent.ShortcutOverride:'ShortcutOverride',
+        #}[event.type()])
         handler = handlers[event.type()]
         return handler(event)
 

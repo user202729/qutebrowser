@@ -558,6 +558,8 @@ def read_config_py(filename: str, raising: bool = False) -> None:
         raising: Raise exceptions happening in config.py.
                  This is needed during tests to use pytest's inspection.
     """
+    from time import time
+    start=time()
     assert config.instance is not None
     assert config.key_instance is not None
 
@@ -610,6 +612,7 @@ def read_config_py(filename: str, raising: bool = False) -> None:
 
     if api.errors:
         raise configexc.ConfigFileErrors('config.py', api.errors)
+    print('Config time =',time()-start)
 
 
 def read_autoconfig() -> None:
