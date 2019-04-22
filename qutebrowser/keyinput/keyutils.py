@@ -402,18 +402,13 @@ class KeySequence:
         _MAX_LEN: The maximum amount of keys in a QKeySequence.
     """
 
-    # __slots__ = ['_sequences']
     _MAX_LEN = 4
 
-    # TODO update docs
-    __slots__ = ['_keys']
-
     def __init__(self, *keys):
-        key_ints = []
+        self._sequences = []
         for sub in utils.chunk(keys, self._MAX_LEN):
             sequence = QKeySequence(*sub)
-            key_ints.extend(sequence)
-        self._keys = tuple(key_ints)
+            self._sequences.append(sequence)
         if keys:
             assert self
         self._validate()
@@ -426,7 +421,7 @@ class KeySequence:
 
     def __iter__(self):
         """Iterate over KeyInfo objects."""
-        for key_and_modifiers in self._keys:
+        for key_and_modifiers in self._iter_keys():
             key = int(key_and_modifiers) & ~Qt.KeyboardModifierMask
             modifiers = Qt.KeyboardModifiers(int(key_and_modifiers) &
                                              Qt.KeyboardModifierMask)
@@ -437,48 +432,55 @@ class KeySequence:
 
     def __lt__(self, other):
         # pylint: disable=protected-access
-        return self._keys < other._keys
+        return self._sequences < other._sequences
 
     def __gt__(self, other):
         # pylint: disable=protected-access
-        return self._keys > other._keys
+        return self._sequences > other._sequences
 
     def __le__(self, other):
         # pylint: disable=protected-access
-        return self._keys <= other._keys
+        return self._sequences <= other._sequences
 
     def __ge__(self, other):
         # pylint: disable=protected-access
-        return self._keys >= other._keys
+        return self._sequences >= other._sequences
 
     def __eq__(self, other):
         # pylint: disable=protected-access
-        return self._keys == other._keys
+        return self._sequences == other._sequences
 
     def __ne__(self, other):
         # pylint: disable=protected-access
-        return self._keys != other._keys
+        return self._sequences != other._sequences
 
     def __hash__(self):
-        return hash(tuple(self._keys))
+        return hash(tuple(self._sequences))
 
     def __len__(self):
-        return len(self._keys)
+        return sum(len(seq) for seq in self._sequences)
 
     def __bool__(self):
-        return bool(self._keys)
+        return bool(self._sequences)
 
     def __getitem__(self, item):
         if isinstance(item, slice):
-            keys = list(self._keys)
+            keys = list(self._iter_keys())
             return self.__class__(*keys[item])
         else:
             infos = list(self)
             return infos[item]
 
+    def _iter_keys(self):
+        return itertools.chain.from_iterable(self._sequences)
+
     def _validate(self, keystr=None):
         for info in self:
             if info.key < Qt.Key_Space or info.key >= Qt.Key_unknown:
+                raise KeyParseError(keystr, "Got invalid key!")
+
+        for seq in self._sequences:
+            if not seq:
                 raise KeyParseError(keystr, "Got invalid key!")
 
     def matches(self, other):
@@ -490,15 +492,16 @@ class KeySequence:
         """
         # pylint: disable=protected-access
 
-        if len(self._keys) > len(other._keys):
+        if len(self._sequences) > len(other._sequences):
             # If we entered more sequences than there are in the config,
             # there's no way there can be a match.
             return QKeySequence.NoMatch
 
-        for entered, configured in zip(self._keys, other._keys):
+        for entered, configured in zip(self._sequences, other._sequences):
             # If we get NoMatch/PartialMatch in a sequence, we can abort there.
-            if entered != configured:
-                return QKeySequence.NoMatch
+            match = entered.matches(configured)
+            if match != QKeySequence.ExactMatch:
+                return match
 
         # We checked all common sequences and they had an ExactMatch.
         #
@@ -508,9 +511,9 @@ class KeySequence:
         #
         # If there's the same amount of sequences configured and entered,
         # that's an EqualMatch.
-        if len(self._keys) == len(other._keys):
+        if len(self._sequences) == len(other._sequences):
             return QKeySequence.ExactMatch
-        elif len(self._keys) < len(other._keys):
+        elif len(self._sequences) < len(other._sequences):
             return QKeySequence.PartialMatch
         else:
             raise utils.Unreachable("self={!r} other={!r}".format(self, other))
@@ -562,7 +565,7 @@ class KeySequence:
                 modifiers &= ~Qt.MetaModifier
                 modifiers |= Qt.ControlModifier
 
-        keys = list(self._keys)
+        keys = list(self._iter_keys())
         keys.append(key | int(modifiers))
 
         return self.__class__(*keys)
@@ -570,13 +573,13 @@ class KeySequence:
     def strip_modifiers(self):
         """Strip optional modifiers from keys."""
         modifiers = Qt.KeypadModifier
-        keys = [key & ~modifiers for key in self._keys]
+        keys = [key & ~modifiers for key in self._iter_keys()]
         return self.__class__(*keys)
 
     def with_mappings(self, mappings: typing.Mapping):
         """Get a new KeySequence with the given mappings applied."""
         keys = []
-        for key in self._keys:
+        for key in self._iter_keys():
             key_seq = KeySequence(key)
             if key_seq in mappings:
                 new_seq = mappings[key_seq]
@@ -590,12 +593,10 @@ class KeySequence:
         """Parse a keystring like <Ctrl-x> or xyz and return a KeySequence."""
         # pylint: disable=protected-access
         new = cls()
-        key_ints = []
         strings = list(_parse_keystring(keystr))
         for sub in utils.chunk(strings, cls._MAX_LEN):
             sequence = QKeySequence(', '.join(sub))
-            key_ints.extend(sequence)
-        new._keys = tuple(key_ints)
+            new._sequences.append(sequence)
 
         if keystr:
             assert new, keystr
