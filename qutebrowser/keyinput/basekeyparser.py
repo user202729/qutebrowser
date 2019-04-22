@@ -170,7 +170,7 @@ class BaseKeyParser(QObject):
 
     keystring_updated = pyqtSignal(str)
     request_leave = pyqtSignal(usertypes.KeyMode, str, bool)
-    do_log = True
+    do_log = False
     passthrough = False
     supports_count = True
 
@@ -263,10 +263,11 @@ class BaseKeyParser(QObject):
             A QKeySequence match.
         """
         key = Qt.Key(e.key())
-        txt = str(keyutils.KeyInfo.from_event(e))
-        self._debug_log("Got key: 0x{:x} / modifiers: 0x{:x} / text: '{}' / "
-                        "dry_run {}".format(key, int(e.modifiers()), txt,
-                                            dry_run))
+        if self.do_log:
+            txt = str(keyutils.KeyInfo.from_event(e))
+            self._debug_log(
+                    "Got key: 0x{:x} / modifiers: 0x{:x} / text: '{}' / "
+                    "dry_run {}".format(key, int(e.modifiers()), txt, dry_run))
 
         if keyutils.is_modifier_key(key):
             self._debug_log("Ignoring, only modifier")
@@ -304,8 +305,9 @@ class BaseKeyParser(QObject):
             self.clear_keystring()
             self.execute(result.command, count)
         elif result.match_type == QKeySequence.PartialMatch:
-            self._debug_log("No match for '{}' (added {})".format(
-                result.sequence, txt))
+            if self.do_log:
+                self._debug_log("No match for '{}' (added {})".format(
+                    result.sequence, txt))
             self.keystring_updated.emit(self._count + str(result.sequence))
         elif result.match_type == QKeySequence.NoMatch:
             self._debug_log("Giving up with '{}', no matches".format(
