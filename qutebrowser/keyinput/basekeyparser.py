@@ -21,108 +21,13 @@
 
 import string
 import types
-from typing import Mapping, Sequence, Optional, Union
 
-import attr
 from PyQt5.QtCore import pyqtSignal, QObject
 from PyQt5.QtGui import QKeySequence
 
 from qutebrowser.config import config
 from qutebrowser.utils import usertypes, log, utils
 from qutebrowser.keyinput import keyutils
-
-
-@attr.s(slots=True)
-class BindingTrie:
-
-    """Helper class for key parser. Represents a set of bindings.
-
-    Except for the root item, there is no children BindingTrie with no bound
-    commands.
-
-    This class works like a Mapping[keyutils.KeySequence], but with matches
-    method added. Note that some unused methods may not be implemented. It may
-    be a good idea to make this function inherit from
-    collections.abc.MutableMapping.
-
-    Attributes:
-        child: A map. Keys of this map can be get from the KeyInfo.to_int
-               method.
-        command: Command associated with the root trie node.
-    """
-
-    child = attr.ib(type=Mapping[int, 'BindingTrie'], factory=dict)
-    command = attr.ib(type=Optional[str], default=None)
-
-    def __setitem__(
-            self, sequence: keyutils.KeySequence, command: str):
-        self._set([key.to_int() for key in sequence], 0, command)
-
-    def _set(self, sequence: Sequence[int], index: int, command: str):
-        """Internal method to set an item in the trie.
-
-        The item to be set is indexed by sequence[index:], where sequence is a
-        list of integers that represents keys (they can be obtained by calling
-        keyutils.KeySequence.to_int() method).
-
-        This is done for performance reason - otherwise this function would
-        need to call _set on a child with sequence=sequence[1:], and slicing
-        the list n times takes O(n^2) time.
-
-        In practice this doesn't matter too much because bindings tend to be
-        short, however it's better to use the correct algorithm.
-        """
-        if index == len(sequence):
-            self.command = command
-            return
-        if sequence[index] not in self.child:
-            self.child[sequence[index]] = BindingTrie()
-        self.child[sequence[index]]._set(sequence, index+1, command)
-
-    def __delitem__(self, sequence):
-        raise NotImplementedError
-
-    def __getitem__(self, sequence):
-        raise NotImplementedError
-
-    def matches(self, sequence: keyutils.KeySequence):
-        """Try to match a given keystring with any bound keychain.
-
-        Args:
-            sequence: The command string to find.
-
-        Return:
-            A tuple (matchtype, binding).
-                matchtype: QKeySequence.ExactMatch, QKeySequence.PartialMatch
-                           or QKeySequence.NoMatch.
-                binding: - None with QKeySequence.PartialMatch or
-                           QKeySequence.NoMatch.
-                         - The found binding with QKeySequence.ExactMatch.
-        """
-        return self._matches([key.to_int() for key in sequence], 0)
-
-    def _matches(self, sequence: Sequence[int], index: int):
-        """Try to match a given keystring with any bound keychain.
-
-        The parameters sequence and index is the same as in _set method.
-        The return value is the same as in matches method.
-        """
-        if index == len(sequence):
-            if self.command is not None:
-                return QKeySequence.ExactMatch, self.command
-            elif self.child:
-                return QKeySequence.PartialMatch, None
-            else:  # This can only happen when there is no bindings
-                return QKeySequence.NoMatch, None
-
-        try:
-            return self.child[sequence[index]]._matches(sequence, index+1)
-        except KeyError:
-            return QKeySequence.NoMatch, None
-
-    def update(self, x: Mapping[keyutils.KeySequence, str]):
-        for sequence, command in x.items():
-            self[sequence] = command
 
 
 class BaseKeyParser(QObject):
@@ -171,7 +76,7 @@ class BaseKeyParser(QObject):
         self._sequence = keyutils.KeySequence()
         self._count = ''
         self._supports_count = supports_count
-        self.bindings = BindingTrie()
+        self.bindings = {}
         config.instance.changed.connect(self._on_config_changed)
 
     def __repr__(self):
@@ -200,8 +105,17 @@ class BaseKeyParser(QObject):
         """
         assert sequence
         assert not isinstance(sequence, str)
+        result = QKeySequence.NoMatch
 
-        return self.bindings.matches(sequence)
+        for seq, cmd in self.bindings.items():
+            assert not isinstance(seq, str), seq
+            match = sequence.matches(seq)
+            if match == QKeySequence.ExactMatch:
+                return match, cmd
+            elif match == QKeySequence.PartialMatch:
+                result = QKeySequence.PartialMatch
+
+        return result, None
 
     def _match_without_modifiers(self, sequence):
         """Try to match a key with optional modifiers stripped."""
@@ -306,9 +220,6 @@ class BaseKeyParser(QObject):
 
     @config.change_filter('bindings')
     def _on_config_changed(self):
-        # Note: This function is called which erases and rebuild the whole
-        # self.bindings object, even if it only needs to add or remove one
-        # item.
         self._read_config()
 
     def _read_config(self, modename=None):
@@ -327,7 +238,7 @@ class BaseKeyParser(QObject):
             modename = self._modename
         else:
             self._modename = modename
-        self.bindings = BindingTrie()
+        self.bindings = {}
 
         for key, cmd in config.key_instance.get_bindings_for(modename).items():
             assert not isinstance(key, str), key
