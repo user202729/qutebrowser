@@ -1050,32 +1050,19 @@ class WordHinter:
 
     def __init__(self) -> None:
         # will be initialized on first use.
-        self.words: Set[str] = set()
+        self.words = []
         self.dictionary = None
 
     def ensure_initialized(self) -> None:
         """Generate the used words if yet uninitialized."""
         dictionary = config.val.hints.dictionary
         if not self.words or self.dictionary != dictionary:
-            self.words.clear()
             self.dictionary = dictionary
             try:
                 with open(dictionary, encoding="UTF-8") as wordfile:
-                    alphabet = set(ascii_lowercase)
                     hints = set()
                     lines = (line.rstrip().lower() for line in wordfile)
-                    for word in lines:
-                        if set(word) - alphabet:
-                            # contains none-alphabetic chars
-                            continue
-                        if len(word) > 4:
-                            # we don't need words longer than 4
-                            continue
-                        for i in range(len(word)):
-                            # remove all prefixes of this word
-                            hints.discard(word[:i + 1])
-                        hints.add(word)
-                    self.words.update(hints)
+                    self.words = list(lines)
             except OSError as e:
                 error = "Word hints requires reading the file at {}: {}"
                 raise HintingError(error.format(dictionary, str(e)))
@@ -1164,7 +1151,7 @@ class WordHinter:
         used_hints: Set[str] = set()
         words = iter(self.words)
         for elem in elems:
-            hint = self.new_hint_for(elem, used_hints, words)
+            hint = next(words, None)
             if not hint:
                 raise HintingError("Not enough words in the dictionary.")
             used_hints.add(hint)
