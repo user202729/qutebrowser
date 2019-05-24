@@ -115,12 +115,12 @@ def run(args):
 
     crash_handler = crashsignal.CrashHandler(
         app=q_app, quitter=quitter, args=args, parent=q_app)
-    crash_handler.activate()
+    # crash_handler.activate()
     objreg.register('crash-handler', crash_handler)
 
     signal_handler = crashsignal.SignalHandler(app=q_app, quitter=quitter,
                                                parent=q_app)
-    signal_handler.activate()
+    # signal_handler.activate()
     objreg.register('signal-handler', signal_handler)
 
     try:
