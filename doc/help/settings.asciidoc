@@ -1268,7 +1268,7 @@ Default: +pass:[yellow]+
 === colors.tabs.bar.bg
 Background color of the tab bar.
 
-Type: <<types,QtColor>>
+Type: <<types,QssColor>>
 
 Default: +pass:[#555555]+
 
@@ -2065,7 +2065,7 @@ Valid values:
 
 Default: +pass:[ask]+
 
-This setting is only available with the QtWebKit backend.
+On QtWebEngine, this setting requires Qt 5.13 or newer.
 
 [[content.pdfjs]]
 === content.pdfjs
