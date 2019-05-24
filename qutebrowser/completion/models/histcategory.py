@@ -20,7 +20,9 @@
 """A completion category that queries the SQL history store."""
 
 import typing
+from queue import SimpleQueue
 
+from PyQt5.QtCore import QThread, QIdentityProxyModel
 from PyQt5.QtSql import QSqlQueryModel
 from PyQt5.QtWidgets import QWidget
 
@@ -29,7 +31,7 @@ from qutebrowser.utils import debug, message, log
 from qutebrowser.config import config
 
 
-class HistoryCategory(QSqlQueryModel):
+class _HistoryCategory(QSqlQueryModel):
 
     """A completion category that queries the SQL history store."""
 
@@ -137,3 +139,62 @@ class HistoryCategory(QSqlQueryModel):
         while self.rowCount() < row:
             self.fetchMore()
         return True
+
+
+class T(QThread):
+    def __init__(self, model):
+        super().__init__()
+        self.queue = SimpleQueue()  # queue of pending set_pattern calls
+        # self.model_queue = SimpleQueue()
+        self.model = model
+        self.start()
+
+    def run(self):
+        model = self.model
+        model.dataChanged.connect(lambda: print('source changed'))
+
+        print('start running')
+
+        while True:
+            x = self.queue.get()
+            print('got ',x)
+            while not self.queue.empty():
+                x = self.queue.get()
+                print('got ',x)
+            print(model)
+            model.set_pattern(x)
+
+
+class HistoryCategory(QIdentityProxyModel):
+    __slots__ = 'thread', 'model'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        model = self.model = _HistoryCategory(*args, **kwargs)
+        self.thread = T(model)
+        self.setSourceModel(model)
+
+
+
+        # self.name = model.name
+        #self.last_pattern = None
+
+    def set_pattern(self, s):
+        #if self.last_pattern == s:
+        #   return
+        #self.last_pattern = s
+
+        print('put ',s)
+        self.thread.queue.put(s)
+        # self.model.set_pattern(s)
+
+    def data(self, index, *args):
+        return super().data(index, *args)
+
+    @property
+    def name(self):
+        return self.model.name
+
+    @property
+    def columns_to_filter(self):
+        return self.model.columns_to_filter
