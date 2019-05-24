@@ -20,8 +20,10 @@
 """Provides access to an in-memory sqlite database."""
 
 import collections
+from queue import SimpleQueue
+from functools import partial
 
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal, QThread
 from PyQt5.QtSql import QSqlDatabase, QSqlQuery, QSqlError
 
 from qutebrowser.utils import log, debug
@@ -125,8 +127,15 @@ def raise_sqlite_error(msg, error):
     raise BugError(msg, error)
 
 
-def init(db_path):
+def init_(db_path):
     """Initialize the SQL database connection."""
+
+    assert QThread.currentThread() == QUERY_THREAD, (
+            QThread.currentThread(), QThread.currentThreadId(),
+            QUERY_THREAD)
+
+    print('** init **')
+
     database = QSqlDatabase.addDatabase('QSQLITE')
     if not database.isValid():
         raise KnownError('Failed to add database. Are sqlite and Qt sqlite '
@@ -140,29 +149,39 @@ def init(db_path):
 
     # Enable write-ahead-logging and reduce disk write frequency
     # see https://sqlite.org/pragma.html and issues #2930 and #3507
-    Query("PRAGMA journal_mode=WAL").run()
-    Query("PRAGMA synchronous=NORMAL").run()
+    Query_("PRAGMA journal_mode=WAL").run()
+    Query_("PRAGMA synchronous=NORMAL").run()
 
 
-def close():
+def close_():
     """Close the SQL connection."""
     QSqlDatabase.removeDatabase(QSqlDatabase.database().connectionName())
 
 
-def version():
+def close():
+    """Close the SQL connection."""
+    QUERY_THREAD.exec_(close_)
+
+
+def version_():
     """Return the sqlite version string."""
     try:
         if not QSqlDatabase.database().isOpen():
             init(':memory:')
-            ver = Query("select sqlite_version()").run().value()
-            close()
+            ver = Query_("select sqlite_version()").run().value()
+            close_()
             return ver
-        return Query("select sqlite_version()").run().value()
+        return Query_("select sqlite_version()").run().value()
     except KnownError as e:
         return 'UNAVAILABLE ({})'.format(e)
 
 
-class Query:
+def version():
+    """Return the sqlite version string."""
+    return QUERY_THREAD.eval_(version_)
+
+
+class Query_:
 
     """A prepared SQL query."""
 
@@ -174,6 +193,9 @@ class Query:
             forward_only: Optimization for queries that will only step forward.
                           Must be false for completion queries.
         """
+        assert QThread.currentThread() == QUERY_THREAD, (
+                QThread.currentThread(), QThread.currentThreadId(),
+                QUERY_THREAD)
         self.query = QSqlQuery(QSqlDatabase.database())
 
         log.sql.debug('Preparing SQL query: "{}"'.format(querystr))
@@ -215,7 +237,7 @@ class Query:
         log.sql.debug('query bindings: {}'.format(self.bound_values()))
 
         ok = self.query.exec_()
-        self._check_ok('exec', ok)
+        self._check_ok('exec_', ok)
 
         return self
 
@@ -277,6 +299,9 @@ class SqlTable(QObject):
             fields: A list of field names.
             constraints: A dict mapping field names to constraint strings.
         """
+        assert QThread.currentThread() != QUERY_THREAD, (
+                QThread.currentThread(), QThread.currentThreadId(),
+                MAIN_THREAD)
         super().__init__(parent)
         self._name = name
 
@@ -284,7 +309,7 @@ class SqlTable(QObject):
         column_defs = ['{} {}'.format(field, constraints.get(field, ''))
                        for field in fields]
         q = Query("CREATE TABLE IF NOT EXISTS {name} ({column_defs})"
-                  .format(name=name, column_defs=', '.join(column_defs)))
+                       .format(name=name, column_defs=', '.join(column_defs)))
 
         q.run()
 
@@ -296,7 +321,7 @@ class SqlTable(QObject):
             field: Name of the field to index.
         """
         q = Query("CREATE INDEX IF NOT EXISTS {name} ON {table} ({field})"
-                  .format(name=name, table=self._name, field=field))
+                       .format(name=name, table=self._name, field=field))
         q.run()
 
     def __iter__(self):
@@ -388,3 +413,98 @@ class SqlTable(QObject):
                           sort_order=sort_order))
         q.run(limit=limit)
         return q
+
+
+MAIN_THREAD = QThread.currentThread()
+
+class T(QThread):
+    def __init__(self, db_path):
+        super().__init__()
+        self.db_path = db_path
+        self.queue1 = SimpleQueue()
+        self.start()
+
+    def exec_(self, fn):  # async
+        print('exec_ fn ',fn)
+        assert QThread.currentThread() != QUERY_THREAD, (
+                QThread.currentThread(), QThread.currentThreadId(),
+                MAIN_THREAD)
+        self.queue1.put(fn)
+
+    def eval_(self, fn):
+        queue3 = SimpleQueue()
+        self.exec_(lambda: queue3.put(fn()))
+        print('waiting')
+        res = queue3.get()
+        assert res is not None  # only for debug
+        print('waited done')
+        return res
+
+    def run(self):
+        init_(self.db_path)
+        while True:
+            fn = self.queue1.get()
+            print('processing function ',fn)
+            tmp = fn()
+            assert tmp is None
+            print('done processing')
+
+
+def init(db_path):
+    global QUERY_THREAD
+    QUERY_THREAD = T(db_path)
+
+
+class Query:
+    __slots__ = 'queue2', 'obj_'
+
+    @property
+    def obj(self):
+        result = self.obj_
+        if not result:
+            result = self.obj_ = self.queue2.get()
+        return result
+
+    @property
+    def query(self):
+        return self.obj.query
+
+    def __init__(self, querystr, forward_only=True):
+        """Prepare a new SQL query.
+
+        Args:
+            querystr: String to prepare query from.
+            forward_only: Optimization for queries that will only step forward.
+                          Must be false for completion queries.
+        """
+        assert QThread.currentThread() != QUERY_THREAD, (
+                QThread.currentThread(), QThread.currentThreadId(),
+                MAIN_THREAD)
+        self.queue2 = SimpleQueue()
+        self.obj_ = None
+        QUERY_THREAD.exec_(lambda: self.queue2.put(
+            Query_(querystr, forward_only)))
+
+    def __iter__(self):
+        return iter(self.obj)
+
+    def _check_ok(self, *args, **kwargs):
+        return QUERY_THREAD.exec_(lambda: self.obj._check_ok(*args, **kwargs))
+
+    def _bind_values(self, *args, **kwargs):
+        return QUERY_THREAD.exec_(lambda: self.obj._bind_values(*args, **kwargs))
+
+    def run(self, *args, **kwargs):
+        return QUERY_THREAD.eval_(lambda: self.obj.run(*args, **kwargs))
+
+    def run_batch(self, *args, **kwargs):
+        return QUERY_THREAD.exec_(lambda: self.obj.run_batch(*args, **kwargs))
+
+    def value(self, *args, **kwargs):
+        return QUERY_THREAD.eval_(lambda: self.obj.value(*args, **kwargs))
+
+    def rows_affected(self, *args, **kwargs):
+        return QUERY_THREAD.eval_(lambda: self.obj.rows_affected(*args, **kwargs))
+
+    def bound_values(self, *args, **kwargs):
+        return QUERY_THREAD.eval_(lambda: self.obj.bound_values(*args, **kwargs))
