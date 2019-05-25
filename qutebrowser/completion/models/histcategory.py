@@ -174,8 +174,6 @@ class HistoryCategory(QIdentityProxyModel):
         self.thread = T(model)
         self.setSourceModel(model)
 
-
-
         # self.name = model.name
         #self.last_pattern = None
 
@@ -198,3 +196,9 @@ class HistoryCategory(QIdentityProxyModel):
     @property
     def columns_to_filter(self):
         return self.model.columns_to_filter
+
+    def fetchMore(self, parent):
+        print('start fetchmore')
+        result = super().fetchMore(parent)
+        print('done fetchmore')
+        return result

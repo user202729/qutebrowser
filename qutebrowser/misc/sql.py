@@ -29,6 +29,11 @@ from PyQt5.QtSql import QSqlDatabase, QSqlQuery, QSqlError
 from qutebrowser.utils import log, debug
 
 
+# DEBUG
+from hanging_threads import start_monitoring
+monitoring_thread = start_monitoring(seconds_frozen=0.5, test_interval=100)
+
+
 class SqliteErrorCode:
 
     """Error codes as used by sqlite.
@@ -425,6 +430,7 @@ class T(QThread):
         self.start()
 
     def exec_(self, fn):  # async
+        # exec/eval functions are executed in correct order
         print('exec_ fn ',fn)
         assert QThread.currentThread() != QUERY_THREAD, (
                 QThread.currentThread(), QThread.currentThreadId(),
@@ -495,7 +501,20 @@ class Query:
         return QUERY_THREAD.exec_(lambda: self.obj._bind_values(*args, **kwargs))
 
     def run(self, *args, **kwargs):
-        return QUERY_THREAD.eval_(lambda: self.obj.run(*args, **kwargs))
+        print('start run')
+        result = QUERY_THREAD.eval_(lambda: self.obj.run(*args, **kwargs))
+        print('done run')
+
+        # NOTE: this function returns the Query_ object from the other thread
+        return result
+
+        # # FAILED: seg fault
+        # return self
+
+        # # FAILED: doesn't return any result (why?)
+        # QUERY_THREAD.exec_(lambda: (self.obj.run(*args, **kwargs),
+        #     None)[1])
+        # return self
 
     def run_batch(self, *args, **kwargs):
         return QUERY_THREAD.exec_(lambda: self.obj.run_batch(*args, **kwargs))
