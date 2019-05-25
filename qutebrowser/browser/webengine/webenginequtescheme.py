@@ -168,3 +168,6 @@ def init():
         scheme.setFlags(QWebEngineUrlScheme.LocalScheme |
                         QWebEngineUrlScheme.LocalAccessAllowed)
         QWebEngineUrlScheme.registerScheme(scheme)
+        print('*** reg scheme')
+        import traceback
+        traceback.print_stack()
