@@ -627,11 +627,16 @@ def set_register_stylesheet(obj: QObject, *,
 
 
 @functools.lru_cache()
+def _compile_template(stylesheet: str):
+    """Compile the given stylesheet jinja template."""
+    with jinja.environment.no_autoescape():
+        return jinja.environment.from_string(stylesheet)
+
+
+@functools.lru_cache()
 def _render_stylesheet(stylesheet: str) -> str:
     """Render the given stylesheet jinja template."""
-    with jinja.environment.no_autoescape():
-        template = jinja.environment.from_string(stylesheet)
-    return template.render(conf=val)
+    return _compile_template(stylesheet).render(conf=val)
 
 
 class StyleSheetObserver(QObject):
