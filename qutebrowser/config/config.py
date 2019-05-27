@@ -638,11 +638,6 @@ class StyleSheetObserver(QObject):
 
     """Set the stylesheet on the given object and update it on changes.
 
-    Note that if update is turned on and the stylesheet accesses any config
-    option with a syntax different from 'conf.abc.def' (with surrounding
-    spaces) then an explicit option 'options' should be passed to be used as
-    self._options.
-
     Attributes:
         _obj: The object to observe.
         _stylesheet: The stylesheet template to use.
@@ -652,14 +647,13 @@ class StyleSheetObserver(QObject):
     """
 
     def __init__(self, obj: QObject,
-                 stylesheet: Optional[str], update: bool,
-                 options: Optional[FrozenSet[str]] = None) -> None:
+                 stylesheet: Optional[str], update: bool) -> None:
         super().__init__()
         self._obj = obj
         self._update = update
 
         # We only need to hang around if we are asked to update.
-        if self._update:
+        if update:
             self.setParent(self._obj)
         if stylesheet is None:
             self._stylesheet = obj.STYLESHEET  # type: str
@@ -667,15 +661,10 @@ class StyleSheetObserver(QObject):
             self._stylesheet = stylesheet
 
         if update:
-            if options is None:
-                # try to guess the used config options by parsing the
-                # stylesheet with a simple regex
-                options = frozenset(re.findall(r' conf.([0-9a-zA-Z_.]*) ',
-                                               self._stylesheet))
+            self._options = jinja.template_config_variables(self._stylesheet)
 
             # assert that all of the options exists
-            assert all(instance.get_opt(option) for option in options)
-            self._options = options
+            assert all(instance.get_opt(option) for option in self._options)
 
     def _get_stylesheet(self) -> str:
         """Format a stylesheet based on a template.

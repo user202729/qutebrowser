@@ -20,6 +20,8 @@
 """Utilities related to jinja2."""
 
 import os
+import typing
+import functools
 import os.path
 import contextlib
 import html
@@ -127,3 +129,40 @@ def render(template, **kwargs):
 
 environment = Environment()
 js_environment = jinja2.Environment(loader=Loader('javascript'))
+
+
+@functools.lru_cache()
+def template_config_variables(template: str) -> typing.FrozenSet[str]:
+    """Return a frozenset of config variables that is used in template."""
+    # A mapping from node -> config option name
+    node_to_str = {}
+
+    # A set of leaf strings (for example there are conf.a.b and conf.a.b.c then
+    # conf.a.b won't be in the set)
+    leaves = set()
+
+    for node in reversed(list(
+            environment.parse(template).find_all(jinja2.nodes.Getattr))):
+        # get a list of nodes representing each prefix of a conf access
+        # for example: conf.a.b.c, conf.a.b, conf.a
+        # shorter prefix are listed later in find_all output, and is iterated
+        # over earlier
+        if isinstance(node.node, jinja2.nodes.Name):
+            if node.node.name != 'conf':
+                continue
+            node_to_str[node] = node.attr
+        else:
+            # This node may be conf.a.b.c. Let base be the part with last part
+            # removed (conf.a.b in the example)
+            if node.node not in node_to_str:
+                continue
+
+            base = node_to_str[node.node]
+            if base in leaves:
+                leaves.remove(base)
+
+            node_str = base + '.' + node.attr
+            node_to_str[node] = node_str
+            leaves.add(node_str)
+
+    return frozenset(leaves)
