@@ -134,35 +134,27 @@ js_environment = jinja2.Environment(loader=Loader('javascript'))
 @functools.lru_cache()
 def template_config_variables(template: str) -> typing.FrozenSet[str]:
     """Return a frozenset of config variables that is used in template."""
-    # A mapping from node -> config option name
-    node_to_str = {}
+    pending = [environment.parse(template)]  # a list of unvisited nodes
+    result = []  # type: typing.List[str]
+    while pending:
+        node = pending.pop()
+        if isinstance(node, jinja2.nodes.Getattr):
+            attrlist = []  # list of attribute names in reverse order
+            # for example it's ['ab', 'c', 'd'] for something.d.c.ab
+            while True:
+                attrlist.append(node.attr)
+                node = node.node
+                if not isinstance(node, jinja2.nodes.Getattr):
+                    break
 
-    # A set of leaf strings (for example there are conf.a.b and conf.a.b.c then
-    # conf.a.b won't be in the set)
-    leaves = set()
-
-    for node in reversed(list(
-            environment.parse(template).find_all(jinja2.nodes.Getattr))):
-        # get a list of nodes representing each prefix of a conf access
-        # for example: conf.a.b.c, conf.a.b, conf.a
-        # shorter prefix are listed later in find_all output, and is iterated
-        # over earlier
-        if isinstance(node.node, jinja2.nodes.Name):
-            if node.node.name != 'conf':
-                continue
-            node_to_str[node] = node.attr
+            if isinstance(node, jinja2.nodes.Name):
+                if node.name == 'conf':
+                    result.append('.'.join(reversed(attrlist)))
+                # otherwise, the node is a Name node so it doesn't have any
+                # child nodes
+            else:
+                pending.append(node)
         else:
-            # This node may be conf.a.b.c. Let base be the part with last part
-            # removed (conf.a.b in the example)
-            if node.node not in node_to_str:
-                continue
+            pending.extend(node.iter_child_nodes())
 
-            base = node_to_str[node.node]
-            if base in leaves:
-                leaves.remove(base)
-
-            node_str = base + '.' + node.attr
-            node_to_str[node] = node_str
-            leaves.add(node_str)
-
-    return frozenset(leaves)
+    return frozenset(result)
