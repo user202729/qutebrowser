@@ -61,6 +61,7 @@ class CompletionModel(QAbstractItemModel):
     def _beginReset(self):
         if self._cnt == 0:
             print('beginResetModel')
+            self.layoutAboutToBeChanged.emit()
             self.beginResetModel()
         self._cnt += 1
 
@@ -68,12 +69,37 @@ class CompletionModel(QAbstractItemModel):
         self._cnt -= 1
         if self._cnt == 0:
             print('endResetModel')
+            self.layoutChanged.emit()
             self.endResetModel()
 
     def add_category(self, cat):
         """Add a completion category to the model."""
         cat.modelAboutToBeReset.connect(self._beginReset)
         cat.modelReset.connect(self._endReset)
+
+        for tr in '''
+columnsAboutToBeInserted
+columnsAboutToBeMoved
+columnsAboutToBeRemoved
+columnsInserted
+columnsMoved
+columnsRemoved
+dataChanged
+headerDataChanged
+layoutAboutToBeChanged
+layoutChanged
+modelAboutToBeReset
+modelReset
+rowsAboutToBeInserted
+rowsAboutToBeMoved
+rowsAboutToBeRemoved
+rowsInserted
+rowsMoved
+rowsRemoved
+'''.split():
+            getattr(cat,tr).connect(lambda tr=tr:
+                    print(f'== SIG {cat.__class__.__name__} {tr}'))
+
         self._categories.append(cat)
 
     def data(self, index, role=Qt.DisplayRole):
@@ -88,9 +114,11 @@ class CompletionModel(QAbstractItemModel):
         """
         if role != Qt.DisplayRole:
             return None
+        print('== data called rc=',index.row(), index.column())
         cat = self._cat_from_idx(index)
         if cat:
             # category header
+            print('== HEAD')
             if index.column() == 0:
                 return self._categories[index.row()].name
             return None
@@ -99,7 +127,9 @@ class CompletionModel(QAbstractItemModel):
         if not cat:
             return None
         idx = cat.index(index.row(), index.column())
-        return cat.data(idx)
+        ans= cat.data(idx)
+        print(f'cat {cat} idx {idx} data {ans}')
+        return ans
 
     def flags(self, index):
         """Return the item flags for index.
@@ -162,7 +192,7 @@ class CompletionModel(QAbstractItemModel):
         else:
             # category
             ans= cat.rowCount()
-            print(cat,'rowCount',ans)
+            print(cat.__class__.__name__,'rowCount',ans)
             return ans
 
     def columnCount(self, parent=QModelIndex()):
