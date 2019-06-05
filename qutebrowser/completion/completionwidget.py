@@ -299,12 +299,16 @@ class CompletionView(QTreeView):
             self.model().deleteLater()
             self.selectionModel().deleteLater()
 
+        print('setModel',model)
         self.setModel(model)
 
         if model is None:
             self._active = False
             self.hide()
             return
+
+        model.modelAboutToBeReset.connect(lambda: print('VIEW: abReset'))
+        model.modelReset.connect(lambda: print('VIEW: reset'))
 
         model.setParent(self)
         self._active = True

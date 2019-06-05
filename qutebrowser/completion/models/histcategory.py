@@ -126,9 +126,12 @@ class _HistoryCategory(QSqlQueryModel):
             # Also catches failures in the DB we can't solve.
             message.error("Error with SQL query: {}".format(e.text()))
             return
+        import time
+        time.sleep(1)
         self.setQuery(self._query.query)
         if not self.rowCount() and not self.canFetchMore():
             self._empty_prefix = raw_pattern
+        print('set query done')
 
     def removeRows(self, row, _count, _parent=None):
         """Override QAbstractItemModel::removeRows to re-run SQL query."""

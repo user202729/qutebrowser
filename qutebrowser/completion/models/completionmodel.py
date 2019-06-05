@@ -42,6 +42,7 @@ class CompletionModel(QAbstractItemModel):
         super().__init__(parent)
         self.column_widths = column_widths
         self._categories = []
+        self._cnt = 0  # number of nested reset calls
 
     def _cat_from_idx(self, index):
         """Return the category pointed to by the given index.
@@ -57,8 +58,22 @@ class CompletionModel(QAbstractItemModel):
             return self._categories[index.row()]
         return None
 
+    def _beginReset(self):
+        if self._cnt == 0:
+            print('beginResetModel')
+            self.beginResetModel()
+        self._cnt += 1
+
+    def _endReset(self):
+        self._cnt -= 1
+        if self._cnt == 0:
+            print('endResetModel')
+            self.endResetModel()
+
     def add_category(self, cat):
         """Add a completion category to the model."""
+        cat.modelAboutToBeReset.connect(self._beginReset)
+        cat.modelReset.connect(self._endReset)
         self._categories.append(cat)
 
     def data(self, index, role=Qt.DisplayRole):
@@ -146,7 +161,9 @@ class CompletionModel(QAbstractItemModel):
             return 0
         else:
             # category
-            return cat.rowCount()
+            ans= cat.rowCount()
+            print(cat,'rowCount',ans)
+            return ans
 
     def columnCount(self, parent=QModelIndex()):
         """Override QAbstractItemModel::columnCount."""
@@ -180,10 +197,10 @@ class CompletionModel(QAbstractItemModel):
         # WORKAROUND:
         # layoutChanged is broken in PyQt 5.7.1, so we must use metaObject
         # https://www.riverbankcomputing.com/pipermail/pyqt/2017-January/038483.html
-        self.metaObject().invokeMethod(self, "layoutAboutToBeChanged")
+        # self.metaObject().invokeMethod(self, "layoutAboutToBeChanged")
         for cat in self._categories:
             cat.set_pattern(pattern)
-        self.metaObject().invokeMethod(self, "layoutChanged")
+        # self.metaObject().invokeMethod(self, "layoutChanged")
 
     def first_item(self):
         """Return the index of the first child (non-category) in the model."""
