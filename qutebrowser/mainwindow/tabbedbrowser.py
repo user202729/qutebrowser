@@ -919,7 +919,8 @@ class TabbedBrowser(QWidget):
 
     def _on_renderer_process_terminated(self, tab, status, code):
         """Show an error when a renderer process terminated."""
-        if status == browsertab.TerminationStatus.normal:
+        if status in (browsertab.TerminationStatus.normal,
+                browsertab.TerminationStatus.killed):
             return
 
         messages = {
