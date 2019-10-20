@@ -174,7 +174,7 @@ class GreasemonkeyScript:
             scriptName=javascript.string_escape(
                 "/".join([self.namespace or '', self.name])),
             scriptInfo=self._meta_json(),
-            scriptMeta=javascript.string_escape(self.script_meta or ''),
+            scriptMeta=self.script_meta or '',
             scriptSource=self._code,
             use_proxy=use_proxy)
 

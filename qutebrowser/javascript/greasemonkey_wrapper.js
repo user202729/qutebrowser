@@ -1,3 +1,7 @@
+// ==UserScript==
+{{ scriptMeta }}
+// ==/UserScript==
+
 (function() {
     const _qute_script_id = "__gm_{{ scriptName }}";
 
@@ -7,7 +11,7 @@
 
     const GM_info = {
         'script': {{ scriptInfo }},
-        'scriptMetaStr': "{{ scriptMeta }}",
+        'scriptMetaStr': {{ scriptMeta|tojson }},
         'scriptWillUpdate': false,
         'version': "0.0.1",
         // so scripts don't expect exportFunction
@@ -179,12 +183,12 @@
   
         with (qute_gm_window_proxy) {
             // ====== The actual user script source ====== //
-{{ scriptSource }}
+eval({{ scriptSource|tojson }})
             // ====== End User Script ====== //
         };
     {% else %}
         // ====== The actual user script source ====== //
-{{ scriptSource }}
+eval({{ scriptSource|tojson }})
         // ====== End User Script ====== //
     {% endif %}
 })();
