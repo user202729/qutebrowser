@@ -174,6 +174,7 @@
         const qute_gm_window_proxy = new Proxy(qute_gm_window_shadow, qute_gm_windowProxyHandler);
   
         qute_gm_window_shadow.window = qute_gm_window_proxy;
+        qute_gm_window_shadow.eval = eval;
         qute_gm_window_shadow.unsafeWindow = window;
   
         with (qute_gm_window_proxy) {
