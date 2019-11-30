@@ -1482,6 +1482,11 @@ class WebEngineTab(browsertab.AbstractTab):
         if not qtutils.version_check('5.11.1', compiled=False):
             self.settings.update_for_url(url)
 
+    def _on_url_changed(self, url: QUrl) -> None:
+        super()._on_url_changed(url)
+        if url.isValid():
+            self.settings.update_for_url(url)
+
     @pyqtSlot()
     def _on_print_requested(self):
         """Slot for window.print() in JS."""
