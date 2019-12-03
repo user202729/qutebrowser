@@ -969,9 +969,7 @@ class HintManager(QObject):
             # Clear keystring (required when there is a unique match before
             # typing the whole keystring and hints.auto_follow == unique-match
             # in rapid hint mode)
-            keyparsers = objreg.get('keyparsers', scope='window',
-                                    window=self._win_id)
-            keyparser = keyparsers[usertypes.KeyMode.hint]
+            keyparser = self._get_keyparser(usertypes.KeyMode.hint)
             keyparser.clear_keystring()
             # Reset filtering
             self.filter_hints("")
