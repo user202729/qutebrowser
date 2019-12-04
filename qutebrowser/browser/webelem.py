@@ -296,7 +296,10 @@ class AbstractWebElement(collections.abc.MutableMapping):
         if not url.isValid():
             return None
         if url.isRelative():
-            url = baseurl.resolved(url)
+            if baseurl.scheme() == 'view-source':
+                url = QUrl(baseurl.path()).resolved(url)
+            else:
+                url = baseurl.resolved(url)
         qtutils.ensure_valid(url)
         return url
 
