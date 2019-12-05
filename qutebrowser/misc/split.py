@@ -204,7 +204,5 @@ def simple_split(s, keep=False, maxsplit=None):
         parts = re.split(pattern, s, maxsplit)
         return _combine_ws(parts, whitespace)
     else:
-        pattern = '[' + whitespace + ']'
-        parts = re.split(pattern, s, maxsplit)
-        parts[-1] = parts[-1].rstrip()
-        return [p for p in parts if p]
+        pattern = '[' + whitespace + ']+'
+        return re.split(pattern, s.strip(), maxsplit)
