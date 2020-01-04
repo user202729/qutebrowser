@@ -129,9 +129,9 @@ def get_target_window():
         return None
 
 
-<<<<<<< HEAD
 _OverlayInfoType = typing.Tuple[QWidget, pyqtSignal, bool, str]
-=======
+
+
 @attr.s
 class WindowUndoEntry:
 
@@ -140,7 +140,6 @@ class WindowUndoEntry:
     private = attr.ib()
     geometry = attr.ib()
     tab_stack = attr.ib()
->>>>>>> toofar/feat/window_undo
 
 
 class MainWindow(QWidget):
