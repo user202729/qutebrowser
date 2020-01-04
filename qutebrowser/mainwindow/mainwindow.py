@@ -25,6 +25,7 @@ import itertools
 import functools
 import typing
 
+import attr
 from PyQt5.QtCore import (pyqtSignal, pyqtSlot, QRect, QPoint, QTimer, Qt,
                           QCoreApplication, QEventLoop)
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QSizePolicy
@@ -128,7 +129,18 @@ def get_target_window():
         return None
 
 
+<<<<<<< HEAD
 _OverlayInfoType = typing.Tuple[QWidget, pyqtSignal, bool, str]
+=======
+@attr.s
+class WindowUndoEntry:
+
+    """Information needed for :undo -w."""
+
+    private = attr.ib()
+    geometry = attr.ib()
+    tab_stack = attr.ib()
+>>>>>>> toofar/feat/window_undo
 
 
 class MainWindow(QWidget):
