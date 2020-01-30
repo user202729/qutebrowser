@@ -135,6 +135,8 @@ class CrashHandler(QObject):
             win_pages = []
             tabbed_browser = objreg.get('tabbed-browser', scope='window',
                                         window=win_id)
+            if tabbed_browser.is_private:
+                continue
             for tab in tabbed_browser.widgets():
                 try:
                     urlstr = tab.url().toString(
