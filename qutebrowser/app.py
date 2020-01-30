@@ -44,6 +44,7 @@ import datetime
 import argparse
 import typing
 import collections
+import functools
 
 from PyQt5.QtWidgets import QApplication, QWidget
 from PyQt5.QtGui import QDesktopServices, QPixmap, QIcon
