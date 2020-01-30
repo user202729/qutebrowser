@@ -362,13 +362,6 @@ Feature: Various utility commands.
         Then the header User-Agent should be set to toaster
         And the javascript message "toaster" should be logged
 
-    Scenario: Setting the default user-agent header
-        When I set content.headers.user_agent to <empty>
-        And I open headers
-        And I run :jseval console.log(window.navigator.userAgent)
-        Then the header User-Agent should be set to Mozilla/5.0 *
-        And the javascript message "Mozilla/5.0 *" should be logged
-
     ## https://github.com/qutebrowser/qutebrowser/issues/1523
 
     Scenario: Completing a single option argument
@@ -514,20 +507,20 @@ Feature: Various utility commands.
         Then the error "Renderer process was killed" should be shown
 
     # Skipped on Windows as "... has stopped working" hangs.
-    @qtwebkit_skip @no_invalid_lines @posix @qt>=5.9 @qtbug80085
+    @qtwebkit_skip @no_invalid_lines @posix @qt>=5.9
     Scenario: Renderer crash (5.9)
         When I run :open -t chrome://crash
         Then "Renderer process crashed" should be logged
         And "* 'Error loading chrome://crash/'" should be logged
 
-    @qtwebkit_skip @no_invalid_lines @qt>=5.9 @flaky @qtbug80085
+    @qtwebkit_skip @no_invalid_lines @qt>=5.9 @flaky
     Scenario: Renderer kill (5.9)
         When I run :open -t chrome://kill
         Then "Renderer process was killed" should be logged
         And "* 'Error loading chrome://kill/'" should be logged
 
     # https://github.com/qutebrowser/qutebrowser/issues/2290
-    @qtwebkit_skip @no_invalid_lines @flaky @qtbug80085
+    @qtwebkit_skip @no_invalid_lines @flaky
     Scenario: Navigating to URL after renderer process is gone
         When I run :tab-only
         And I open data/numbers/1.txt

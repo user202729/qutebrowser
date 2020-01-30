@@ -1,6 +1,6 @@
 # vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
 
-# Copyright 2016-2019 Florian Bruhin (The Compiler) <mail@qutebrowser.org>
+# Copyright 2016-2020 Florian Bruhin (The Compiler) <mail@qutebrowser.org>
 #
 # This file is part of qutebrowser.
 #
@@ -377,19 +377,20 @@ class AbstractZoom(QObject):
         It is a NeighborList with the zoom levels."""
         levels = config.val.zoom.levels
         self._neighborlist = usertypes.NeighborList(
-            levels, mode=usertypes.NeighborList.Modes.edge)
+            levels, mode=usertypes.NeighborList.Modes.edge
+        )  # type: usertypes.NeighborList[float]
         self._neighborlist.fuzzyval = config.val.zoom.default
 
-    def apply_offset(self, offset: int) -> int:
+    def apply_offset(self, offset: int) -> float:
         """Increase/Decrease the zoom level by the given offset.
 
         Args:
             offset: The offset in the zoom level list.
 
         Return:
-            The new zoom percentage.
+            The new zoom level.
         """
-        level = self._neighborlist.getitem(offset)  # type: int
+        level = self._neighborlist.getitem(offset)
         self.set_factor(float(level) / 100, fuzzyval=False)
         return level
 
@@ -814,14 +815,6 @@ class AbstractTabPrivate:
 
     def networkaccessmanager(self) -> typing.Optional[QNetworkAccessManager]:
         """Get the QNetworkAccessManager for this tab.
-
-        This is only implemented for QtWebKit.
-        For QtWebEngine, always returns None.
-        """
-        raise NotImplementedError
-
-    def user_agent(self) -> typing.Optional[str]:
-        """Get the user agent for this tab.
 
         This is only implemented for QtWebKit.
         For QtWebEngine, always returns None.

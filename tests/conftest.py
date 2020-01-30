@@ -1,6 +1,6 @@
 # vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
 
-# Copyright 2014-2019 Florian Bruhin (The Compiler) <mail@qutebrowser.org>
+# Copyright 2014-2020 Florian Bruhin (The Compiler) <mail@qutebrowser.org>
 #
 # This file is part of qutebrowser.
 #
@@ -53,10 +53,7 @@ _qute_scheme_handler = None
 hypothesis.settings.register_profile('default',
                                      hypothesis.settings(deadline=600))
 hypothesis.settings.register_profile('ci',
-                                     hypothesis.settings(
-                                         deadline=None,
-                                         suppress_health_check=[
-                                             hypothesis.HealthCheck.too_slow]))
+                                     hypothesis.settings(deadline=None))
 hypothesis.settings.load_profile('ci' if testutils.ON_CI else 'default')
 
 
@@ -111,12 +108,6 @@ def _apply_platform_markers(config, item):
          config.webengine,
          "Broken on webengine due to "
          "https://bugreports.qt.io/browse/QTBUG-60673"),
-        ('qtbug80085',
-         pytest.mark.xfail,
-         qtutils.version_check('5.14', compiled=False) and
-         config.webengine,
-         "Broken on webengine due to "
-         "https://bugreports.qt.io/browse/QTBUG-80085"),
         ('qtwebkit6021_xfail',
          pytest.mark.xfail,
          version.qWebKitVersion and  # type: ignore

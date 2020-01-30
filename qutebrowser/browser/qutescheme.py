@@ -1,6 +1,6 @@
 # vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
 
-# Copyright 2016-2019 Florian Bruhin (The Compiler) <mail@qutebrowser.org>
+# Copyright 2016-2020 Florian Bruhin (The Compiler) <mail@qutebrowser.org>
 #
 # This file is part of qutebrowser.
 #
@@ -465,7 +465,7 @@ def qute_bindings(_url):
     config_modes = set(defaults.keys()).union(config.val.bindings.commands)
     config_modes.remove('normal')
 
-    modes = ['normal'] + sorted(list(config_modes))
+    modes = ['normal'] + sorted(config_modes)
     for mode in modes:
         bindings[mode] = config.key_instance.get_bindings_for(mode)
 

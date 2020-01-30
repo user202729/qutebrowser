@@ -1,6 +1,6 @@
 # vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
 
-# Copyright 2014-2019 Florian Bruhin (The Compiler) <mail@qutebrowser.org>
+# Copyright 2014-2020 Florian Bruhin (The Compiler) <mail@qutebrowser.org>
 #
 # This file is part of qutebrowser.
 #
@@ -706,8 +706,7 @@ class HTMLFormatter(logging.Formatter):
 
     def formatTime(self, record: logging.LogRecord,
                    datefmt: str = None) -> str:
-        # https://github.com/python/typeshed/pull/3343
-        out = super().formatTime(record, datefmt)  # type: ignore
+        out = super().formatTime(record, datefmt)
         return pyhtml.escape(out)
 
 

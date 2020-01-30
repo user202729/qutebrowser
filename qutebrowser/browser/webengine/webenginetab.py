@@ -1,6 +1,6 @@
 # vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
 
-# Copyright 2016-2019 Florian Bruhin (The Compiler) <mail@qutebrowser.org>
+# Copyright 2016-2020 Florian Bruhin (The Compiler) <mail@qutebrowser.org>
 #
 # This file is part of qutebrowser.
 #
@@ -1494,6 +1494,21 @@ class WebEngineTab(browsertab.AbstractTab):
             self.printing.show_dialog()
         except browsertab.WebTabError as e:
             message.error(str(e))
+
+    @pyqtSlot(QUrl)
+    def _on_url_changed(self, url: QUrl) -> None:
+        """Update settings for the current URL.
+
+        Normally this is done below in _on_navigation_request, but we also need
+        to do it here as WORKAROUND for
+        https://bugreports.qt.io/browse/QTBUG-77137
+
+        Since update_for_url() is idempotent, it doesn't matter much if we end
+        up doing it twice.
+        """
+        super()._on_url_changed(url)
+        if url.isValid() and qtutils.version_check('5.13'):
+            self.settings.update_for_url(url)
 
     @pyqtSlot(usertypes.NavigationRequest)
     def _on_navigation_request(self, navigation):

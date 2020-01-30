@@ -1,6 +1,6 @@
 # vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
 
-# Copyright 2018-2019 Jay Kamat <jaygkamat@gmail.com>:
+# Copyright 2018-2020 Jay Kamat <jaygkamat@gmail.com>:
 #
 # This file is part of qutebrowser.
 #
@@ -29,7 +29,7 @@ from helpers import utils
 from qutebrowser.misc import throttle
 
 
-DELAY = 200 if utils.ON_CI else 100
+DELAY = 300 if utils.ON_CI else 100
 
 
 @pytest.fixture
