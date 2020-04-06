@@ -82,6 +82,7 @@ def javascript_confirm(url, js_msg, abort_on, *, escape_msg=True):
         raise CallSuper
 
     js_msg = html.escape(js_msg) if escape_msg else js_msg
+    js_msg = js_msg.replace("\n", "<br/>")
     msg = 'From <b>{}</b>:<br/>{}'.format(html.escape(url.toDisplayString()),
                                           js_msg)
     urlstr = url.toString(QUrl.RemovePassword | QUrl.FullyEncoded)
