@@ -36,7 +36,6 @@ class Message(QLabel):
         super().__init__(text, parent)
         self.replace = replace
         self.setAttribute(Qt.WA_StyledBackground, True)
-        self.setWordWrap(True)
         qss = """
             padding-top: 2px;
             padding-bottom: 2px;
