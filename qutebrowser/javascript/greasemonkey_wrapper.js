@@ -100,8 +100,13 @@
 
         const head = document.getElementsByTagName("head")[0];
         if (head === undefined) {
-            // no head yet, stick it wherever
-            document.documentElement.appendChild(oStyle);
+            new MutationObserver((mutations, observer) => {
+                const head = document.getElementsByTagName("head")[0];
+                if (head !== undefined) {
+                    head.appendChild(oStyle);
+                    observer.disconnect();
+                }
+            }).observe(document, {childList: true});
         } else {
             head.appendChild(oStyle);
         }
