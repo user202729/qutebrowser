@@ -20,7 +20,7 @@
 """Mode manager singleton which handles the current keyboard mode."""
 
 import functools
-import typing
+from typing import Mapping, Callable, MutableMapping, Union, Set, cast
 
 import attr
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QObject, QEvent
@@ -37,8 +37,7 @@ from qutebrowser.browser import hints
 INPUT_MODES = [usertypes.KeyMode.insert, usertypes.KeyMode.passthrough]
 PROMPT_MODES = [usertypes.KeyMode.prompt, usertypes.KeyMode.yesno]
 
-ParserDictType = typing.MutableMapping[
-    usertypes.KeyMode, basekeyparser.BaseKeyParser]
+ParserDictType = MutableMapping[usertypes.KeyMode, basekeyparser.BaseKeyParser]
 
 
 @attr.s(frozen=True)
@@ -67,6 +66,14 @@ class KeyEvent:
 class NotInModeError(Exception):
 
     """Exception raised when we want to leave a mode we're not in."""
+
+
+class UnavailableError(Exception):
+
+    """Exception raised when trying to access modeman before initialization.
+
+    Thrown by instance() if modeman has not been initialized yet.
+    """
 
 
 def init(win_id: int, parent: QObject) -> 'ModeManager':
@@ -169,9 +176,17 @@ def init(win_id: int, parent: QObject) -> 'ModeManager':
     return modeman
 
 
-def instance(win_id: typing.Union[int, str]) -> 'ModeManager':
-    """Get a modemanager object."""
-    return objreg.get('mode-manager', scope='window', window=win_id)
+def instance(win_id: Union[int, str]) -> 'ModeManager':
+    """Get a modemanager object.
+
+    Raises UnavailableError if there is no instance available yet.
+    """
+    mode_manager = objreg.get('mode-manager', scope='window', window=win_id,
+                              default=None)
+    if mode_manager is not None:
+        return mode_manager
+    else:
+        raise UnavailableError("ModeManager is not initialized yet.")
 
 
 def enter(win_id: int,
@@ -223,7 +238,7 @@ class ModeManager(QObject):
         self.parsers = {}  # type: ParserDictType
         self._prev_mode = usertypes.KeyMode.normal
         self.mode = usertypes.KeyMode.normal
-        self._releaseevents_to_pass = set()  # type: typing.Set[KeyEvent]
+        self._releaseevents_to_pass = set()  # type: Set[KeyEvent]
 
     def __repr__(self) -> str:
         return utils.get_repr(self, mode=self.mode)
@@ -246,9 +261,11 @@ class ModeManager(QObject):
                             "{}".format(curmode, utils.qualname(parser)))
         match = parser.handle(event, dry_run=dry_run)
 
-        is_non_alnum = (
-            event.modifiers() not in [Qt.NoModifier, Qt.ShiftModifier] or
-            not event.text().strip())
+        has_modifier = event.modifiers() not in [
+            Qt.NoModifier,
+            Qt.ShiftModifier,
+        ]  # type: ignore[comparison-overlap]
+        is_non_alnum = has_modifier or not event.text().strip()
 
         forward_unbound_keys = config.cache['input.forward_unbound_keys']
 
@@ -416,9 +433,9 @@ class ModeManager(QObject):
             QEvent.KeyRelease: self._handle_keyrelease,
             QEvent.ShortcutOverride:
                 functools.partial(self._handle_keypress, dry_run=True),
-        }  # type: typing.Mapping[QEvent.Type, typing.Callable[[QEvent], bool]]
+        }  # type: Mapping[QEvent.Type, Callable[[QKeyEvent], bool]]
         handler = handlers[event.type()]
-        return handler(event)
+        return handler(cast(QKeyEvent, event))
 
     @cmdutils.register(instance='mode-manager', scope='window')
     def clear_keychain(self) -> None:

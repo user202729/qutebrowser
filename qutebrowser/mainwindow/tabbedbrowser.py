@@ -64,8 +64,11 @@ class TabDeque:
     """
 
     def __init__(self) -> None:
+        size = config.val.tabs.focus_stack_size
+        if size < 0:
+            size = None
         self._stack = collections.deque(
-            maxlen=config.val.tabs.focus_stack_size
+            maxlen=size
         )  # type: typing.Deque[weakref.ReferenceType[QWidget]]
         # Items that have been removed from the primary stack.
         self._stack_deleted = [
@@ -97,7 +100,7 @@ class TabDeque:
         self._ignore_next = True
         return tab
 
-    def next(self, cur_tab: QWidget, *, keep_overflow=True) -> QWidget:
+    def next(self, cur_tab: QWidget, *, keep_overflow: bool = True) -> QWidget:
         """Get the 'next' tab in the stack.
 
         Throws IndexError on failure.
@@ -190,7 +193,7 @@ class TabbedBrowser(QWidget):
     cur_scroll_perc_changed = pyqtSignal(int, int)
     cur_load_status_changed = pyqtSignal(usertypes.LoadStatus)
     cur_fullscreen_requested = pyqtSignal(bool)
-    cur_caret_selection_toggled = pyqtSignal(bool)
+    cur_caret_selection_toggled = pyqtSignal(browsertab.SelectionState)
     close_window = pyqtSignal()
     resized = pyqtSignal('QRect')
     current_tab_changed = pyqtSignal(browsertab.AbstractTab)
@@ -288,7 +291,7 @@ class TabbedBrowser(QWidget):
         for i in range(self.widget.count()):
             widget = self.widget.widget(i)
             if widget is None:
-                log.webview.debug(  # type: ignore
+                log.webview.debug(  # type: ignore[unreachable]
                     "Got None-widget in tabbedbrowser!")
             else:
                 widgets.append(widget)
@@ -512,10 +515,7 @@ class TabbedBrowser(QWidget):
                 newtab = self.widget.widget(0)
                 use_current_tab = False
             else:
-                # FIXME:typing mypy thinks this is None due to @pyqtSlot
-                newtab = typing.cast(
-                    browsertab.AbstractTab,
-                    self.tabopen(background=False, idx=entry.index))
+                newtab = self.tabopen(background=False, idx=entry.index)
 
             newtab.history.private_api.deserialize(entry.history)
             self.widget.set_tab_pinned(newtab, entry.pinned)
@@ -539,7 +539,7 @@ class TabbedBrowser(QWidget):
         """Close a tab via an index."""
         tab = self.widget.widget(idx)
         if tab is None:
-            log.webview.debug(  # type: ignore
+            log.webview.debug(  # type: ignore[unreachable]
                 "Got invalid tab {} for index {}!".format(tab, idx))
             return
         self.tab_close_prompt_if_pinned(
@@ -811,7 +811,7 @@ class TabbedBrowser(QWidget):
         """Give focus to current tab if command mode was left."""
         widget = self.widget.currentWidget()
         if widget is None:
-            return  # type: ignore
+            return  # type: ignore[unreachable]
         if mode in [usertypes.KeyMode.command] + modeman.PROMPT_MODES:
             log.modes.debug("Left status-input mode, focusing {!r}".format(
                 widget))
@@ -828,7 +828,7 @@ class TabbedBrowser(QWidget):
             return
         tab = self.widget.widget(idx)
         if tab is None:
-            log.webview.debug(  # type: ignore
+            log.webview.debug(  # type: ignore[unreachable]
                 "on_current_changed got called with invalid index {}"
                 .format(idx))
             return

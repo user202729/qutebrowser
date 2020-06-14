@@ -98,7 +98,7 @@ def run(args):
     q_app.setApplicationVersion(qutebrowser.__version__)
 
     if args.version:
-        print(version.version())
+        print(version.version_info())
         sys.exit(usertypes.Exit.ok)
 
     quitter.init(args)
@@ -152,7 +152,8 @@ def init(*, args: argparse.Namespace) -> None:
     try:
         _init_modules(args=args)
     except (OSError, UnicodeDecodeError, browsertab.WebTabError) as e:
-        error.handle_fatal_exc(e, args, "Error while initializing!",
+        error.handle_fatal_exc(e, "Error while initializing!",
+                               no_err_windows=args.no_err_windows,
                                pre_text="Error while initializing")
         sys.exit(usertypes.Exit.err_init)
 
@@ -160,13 +161,13 @@ def init(*, args: argparse.Namespace) -> None:
     eventfilter.init()
 
     log.init.debug("Connecting signals...")
-    q_app.focusChanged.connect(on_focus_changed)  # type: ignore
+    q_app.focusChanged.connect(on_focus_changed)
 
     _process_args(args)
 
     for scheme in ['http', 'https', 'qute']:
         QDesktopServices.setUrlHandler(
-            scheme, open_desktopservices_url)  # type: ignore
+            scheme, open_desktopservices_url)
 
     log.init.debug("Init done!")
     crashsignal.crash_handler.raise_crashdlg()
@@ -174,7 +175,6 @@ def init(*, args: argparse.Namespace) -> None:
 
 def _init_icon():
     """Initialize the icon of qutebrowser."""
-    icon = QIcon()
     fallback_icon = QIcon()
     for size in [16, 24, 32, 48, 64, 96, 128, 256, 512]:
         filename = ':/icons/qutebrowser-{size}x{size}.png'.format(size=size)
@@ -200,7 +200,8 @@ def _process_args(args):
         if config.val.content.private_browsing and qtutils.is_single_process():
             err = Exception("Private windows are unavailable with "
                             "the single-process process model.")
-            error.handle_fatal_exc(err, args, 'Cannot start in private mode')
+            error.handle_fatal_exc(err, 'Cannot start in private mode',
+                                   no_err_windows=args.no_err_windows)
             sys.exit(usertypes.Exit.err_init)
         window = mainwindow.MainWindow(private=None)
         if not args.nowindow:
@@ -334,8 +335,12 @@ def _open_special_pages(args):
          'qute://warning/webkit'),
 
         ('old-qt-warning-shown',
-         not qtutils.version_check('5.9'),
+         not qtutils.version_check('5.11'),
          'qute://warning/old-qt'),
+
+        ('session-warning-shown',
+         qtutils.version_check('5.15', compiled=False),
+         'qute://warning/sessions'),
     ]
 
     for state, condition, url in pages:
@@ -370,12 +375,23 @@ def open_desktopservices_url(url):
     tabbed_browser.tabopen(url)
 
 
+# This is effectively a @config.change_filter
+# Howerver, logging is initialized too early to use that annotation
+def _on_config_changed(name: str) -> None:
+    if name.startswith('logging.'):
+        log.init_from_config(config.val)
+
+
 def _init_modules(*, args):
     """Initialize all 'modules' which need to be initialized.
 
     Args:
         args: The argparse namespace.
     """
+    log.init.debug("Initializing logging from config...")
+    log.init_from_config(config.val)
+    config.instance.changed.connect(_on_config_changed)
+
     log.init.debug("Initializing save manager...")
     save_manager = savemanager.SaveManager(q_app)
     objreg.register('save-manager', save_manager)
@@ -406,8 +422,9 @@ def _init_modules(*, args):
         log.init.debug("Initializing web history...")
         history.init(q_app)
     except sql.KnownError as e:
-        error.handle_fatal_exc(e, args, 'Error initializing SQL',
-                               pre_text='Error initializing SQL')
+        error.handle_fatal_exc(e, 'Error initializing SQL',
+                               pre_text='Error initializing SQL',
+                               no_err_windows=args.no_err_windows)
         sys.exit(usertypes.Exit.err_init)
 
     log.init.debug("Initializing command history...")
@@ -471,7 +488,9 @@ class Application(QApplication):
         self._undos = collections.deque()
 
         qt_args = configinit.qt_args(args)
-        log.init.debug("Qt arguments: {}, based on {}".format(qt_args, args))
+        log.init.debug("Commandline args: {}".format(sys.argv[1:]))
+        log.init.debug("Parsed: {}".format(args))
+        log.init.debug("Qt arguments: {}".format(qt_args[1:]))
         super().__init__(qt_args)
 
         objects.args = args
@@ -479,7 +498,7 @@ class Application(QApplication):
         log.init.debug("Initializing application...")
 
         self.launch_time = datetime.datetime.now()
-        self.focusObjectChanged.connect(  # type: ignore
+        self.focusObjectChanged.connect(  # type: ignore[attr-defined]
             self.on_focus_object_changed)
         self.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
 
