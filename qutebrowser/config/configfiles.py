@@ -68,15 +68,19 @@ class StateConfig(configparser.ConfigParser):
         else:
             self.qt_version_changed = False
 
-        for sect in ['general', 'geometry']:
+        for sect in ['general', 'geometry', 'inspector']:
             try:
                 self.add_section(sect)
             except configparser.DuplicateSectionError:
                 pass
 
-        deleted_keys = ['fooled', 'backend-warning-shown']
-        for key in deleted_keys:
-            self['general'].pop(key, None)
+        deleted_keys = [
+            ('general', 'fooled'),
+            ('general', 'backend-warning-shown'),
+            ('geometry', 'inspector'),
+        ]
+        for sect, key in deleted_keys:
+            self[sect].pop(key, None)
 
         self['general']['qt_version'] = qt_version
         self['general']['version'] = qutebrowser.__version__
@@ -319,7 +323,7 @@ class YamlMigrations(QObject):
         self._migrate_font_replacements()
 
         self._migrate_bool('tabs.favicons.show', 'always', 'never')
-        self._migrate_bool('scrolling.bar', 'always', 'when-searching')
+        self._migrate_bool('scrolling.bar', 'always', 'overlay')
         self._migrate_bool('qt.force_software_rendering',
                            'software-opengl', 'none')
         self._migrate_renamed_bool(
