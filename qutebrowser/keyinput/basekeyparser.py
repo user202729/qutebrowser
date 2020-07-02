@@ -284,7 +284,7 @@ class BaseKeyParser(QObject):
             A QKeySequence match.
         """
         key = Qt.Key(e.key())
-        if self.do_log:
+        if self._do_log:
             txt = str(keyutils.KeyInfo.from_event(e))
             self._debug_log(
                     "Got key: 0x{:x} / modifiers: 0x{:x} / text: '{}' / "
@@ -326,7 +326,7 @@ class BaseKeyParser(QObject):
             self.clear_keystring()
             self.execute(result.command, count)
         elif result.match_type == QKeySequence.PartialMatch:
-            if self.do_log:
+            if self._do_log:
                 self._debug_log("No match for '{}' (added {})".format(
                     result.sequence, txt))
             self.keystring_updated.emit(self._count + str(result.sequence))
