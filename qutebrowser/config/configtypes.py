@@ -1057,7 +1057,7 @@ class QtColor(BaseType):
 
     A value can be in one of the following formats:
 
-    * `#RGB`/`#RRGGBB`/`#RRRGGGBBB`/`#RRRRGGGGBBBB`
+    * `#RGB`/`#RRGGBB`/`#AARRGGBB`/`#RRRGGGBBB`/`#RRRRGGGGBBBB`
     * An SVG color name as specified in
       http://www.w3.org/TR/SVG/types.html#ColorKeywords[the W3C specification].
     * transparent (no color)
@@ -1128,7 +1128,7 @@ class QssColor(BaseType):
 
     A value can be in one of the following formats:
 
-    * `#RGB`/`#RRGGBB`/`#RRRGGGBBB`/`#RRRRGGGGBBBB`
+    * `#RGB`/`#RRGGBB`/`#AARRGGBB`/`#RRRGGGBBB`/`#RRRRGGGGBBBB`
     * An SVG color name as specified in
       http://www.w3.org/TR/SVG/types.html#ColorKeywords[the W3C specification].
     * transparent (no color)

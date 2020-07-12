@@ -53,7 +53,8 @@ from PyQt5.QtCore import pyqtSlot, QUrl, QObject, QEvent, pyqtSignal, Qt
 import qutebrowser
 import qutebrowser.resources
 from qutebrowser.commands import runners
-from qutebrowser.config import config, websettings, configfiles, configinit
+from qutebrowser.config import (config, websettings, configfiles, configinit,
+                                qtargs)
 from qutebrowser.browser import (urlmarks, history, browsertab,
                                  qtnetworkdownloads, downloads, greasemonkey)
 from qutebrowser.browser.network import proxy
@@ -192,7 +193,17 @@ def _init_icon():
 
 
 def _init_pulseaudio():
-    """Set properties for PulseAudio."""
+    """Set properties for PulseAudio.
+
+    WORKAROUND for https://bugreports.qt.io/browse/QTBUG-85363
+
+    Affected Qt versions:
+    - Older than 5.11
+    - 5.14.0 to 5.15.0 (inclusive)
+
+    However, we set this on all versions so that qutebrowser's icon gets picked
+    up as well.
+    """
     for prop in ['application.name', 'application.icon_name']:
         os.environ['PULSE_PROP_OVERRIDE_' + prop] = 'qutebrowser'
 
@@ -494,7 +505,7 @@ class Application(QApplication):
         self._last_focus_object = None
         self._undos = collections.deque()
 
-        qt_args = configinit.qt_args(args)
+        qt_args = qtargs.qt_args(args)
         log.init.debug("Commandline args: {}".format(sys.argv[1:]))
         log.init.debug("Parsed: {}".format(args))
         log.init.debug("Qt arguments: {}".format(qt_args[1:]))
