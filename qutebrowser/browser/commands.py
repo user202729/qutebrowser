@@ -1652,8 +1652,9 @@ class CommandDispatcher:
             raise cmdutils.CommandError(str(e))
 
     @cmdutils.register(instance='command-dispatcher', scope='window')
-    def fake_key(self, keystring, global_=False):
-        """Send a fake keypress or key string to the website or qutebrowser.
+    def fake_key(self, keystring, global_=False, inspector=False):
+        """Send a fake keypress or key string to the website, the inspector
+        or qutebrowser.
 
         :fake-key xy - sends the keychain 'xy'
         :fake-key <Ctrl-x> - sends Ctrl-x
@@ -1662,6 +1663,7 @@ class CommandDispatcher:
         Args:
             keystring: The keystring to send.
             global_: If given, the keys are sent to the qutebrowser UI.
+            inspector: If given, the keys are sent to the inspector.
         """
         try:
             sequence = keyutils.KeySequence.parse(keystring)
@@ -1673,11 +1675,28 @@ class CommandDispatcher:
             release_event = keyinfo.to_event(QEvent.KeyRelease)
 
             if global_:
+                if inspector:
+                    raise cmdutils.CommandError("Global and inspector cannot be both specified")
                 window = QApplication.focusWindow()
                 if window is None:
                     raise cmdutils.CommandError("No focused window!")
                 QApplication.postEvent(window, press_event)
                 QApplication.postEvent(window, release_event)
+            elif inspector:
+                tab = self._current_widget()
+                inspector = tab.data.inspector
+                if inspector is None:
+                    raise cmdutils.CommandError("No inspector")
+                if not inspector.isVisible():
+                    raise cmdutils.CommandError("Inspector is hidden")
+
+                # TODO only do this if backend is webengine
+                # TODO perhaps reuse private_api.event_target()?...
+                from qutebrowser.browser.webengine.webview import WebEngineView
+                inspector = WebEngineView.render_widget(inspector._widget)
+
+                QApplication.postEvent(inspector, press_event)
+                QApplication.postEvent(inspector, release_event)
             else:
                 tab = self._current_widget()
                 tab.send_event(press_event)
