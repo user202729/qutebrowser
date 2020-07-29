@@ -612,11 +612,3 @@ Feature: Using hints
         And I hint with args "all delete" and follow a
         And I run :hint
         Then the error "No elements found." should be shown
-
-    Scenario: Hinting contenteditable inputs
-        When I open data/hints/input.html
-        And I hint with args "inputs" and follow f
-        And I wait for "Entering mode KeyMode.insert (reason: clicking input)" in the log
-        And I run :leave-mode
-        # The actual check is already done above
-        Then no crash should happen
