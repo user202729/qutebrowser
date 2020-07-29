@@ -171,7 +171,9 @@
 |<<content.local_content_can_access_file_urls,content.local_content_can_access_file_urls>>|Allow locally loaded documents to access other local URLs.
 |<<content.local_content_can_access_remote_urls,content.local_content_can_access_remote_urls>>|Allow locally loaded documents to access remote URLs.
 |<<content.local_storage,content.local_storage>>|Enable support for HTML 5 local storage and Web SQL.
-|<<content.media_capture,content.media_capture>>|Allow websites to record audio/video.
+|<<content.media.audio_capture,content.media.audio_capture>>|Allow websites to record audio.
+|<<content.media.audio_video_capture,content.media.audio_video_capture>>|Allow websites to record audio and video.
+|<<content.media.video_capture,content.media.video_capture>>|Allow websites to record video.
 |<<content.mouse_lock,content.mouse_lock>>|Allow websites to lock your mouse pointer.
 |<<content.mute,content.mute>>|Automatically mute tabs.
 |<<content.netrc_file,content.netrc_file>>|Netrc-file for HTTP authentication.
@@ -313,7 +315,7 @@
 |<<tabs.title.format,tabs.title.format>>|Format to use for the tab title.
 |<<tabs.title.format_pinned,tabs.title.format_pinned>>|Format to use for the tab title for pinned tabs. The same placeholders like for `tabs.title.format` are defined.
 |<<tabs.tooltips,tabs.tooltips>>|Show tooltips on tabs.
-|<<tabs.undo_stack_size,tabs.undo_stack_size>>|Number of close tab actions to remember, per window (-1 for no maximum).
+|<<tabs.undo_stack_size,tabs.undo_stack_size>>|Number of closed tabs (per window) and closed windows to remember for :undo (-1 for no maximum).
 |<<tabs.width,tabs.width>>|Width (in pixels or as percentage of the window) of the tab bar if it's vertical.
 |<<tabs.wrap,tabs.wrap>>|Wrap when changing tabs.
 |<<url.auto_search,url.auto_search>>|What search to start when something else than a URL is entered.
@@ -606,6 +608,7 @@ Default:
 * +pass:[Sq]+: +pass:[open qute://bookmarks]+
 * +pass:[Ss]+: +pass:[open qute://settings]+
 * +pass:[T]+: +pass:[tab-focus]+
+* +pass:[U]+: +pass:[undo -w]+
 * +pass:[V]+: +pass:[enter-mode caret ;; toggle-selection --line]+
 * +pass:[ZQ]+: +pass:[quit]+
 * +pass:[ZZ]+: +pass:[quit --save]+
@@ -2117,7 +2120,8 @@ The following placeholders are defined:
   with QtWebEngine).
 * `{qt_key}`: "Qt" for QtWebKit, "QtWebEngine" for QtWebEngine.
 * `{qt_version}`: The underlying Qt version.
-* `{upstream_browser_key}`: "Version" for QtWebKit, "Chrome" for QtWebEngine.
+* `{upstream_browser_key}`: "Version" for QtWebKit, "Chrome" for
+  QtWebEngine.
 * `{upstream_browser_version}`: The corresponding Safari/Chrome version.
 * `{qutebrowser_version}`: The currently running qutebrowser version.
 
@@ -2311,9 +2315,45 @@ Type: <<types,Bool>>
 
 Default: +pass:[true]+
 
-[[content.media_capture]]
-=== content.media_capture
-Allow websites to record audio/video.
+[[content.media.audio_capture]]
+=== content.media.audio_capture
+Allow websites to record audio.
+
+This setting supports URL patterns.
+
+Type: <<types,BoolAsk>>
+
+Valid values:
+
+ * +true+
+ * +false+
+ * +ask+
+
+Default: +pass:[ask]+
+
+This setting is only available with the QtWebEngine backend.
+
+[[content.media.audio_video_capture]]
+=== content.media.audio_video_capture
+Allow websites to record audio and video.
+
+This setting supports URL patterns.
+
+Type: <<types,BoolAsk>>
+
+Valid values:
+
+ * +true+
+ * +false+
+ * +ask+
+
+Default: +pass:[ask]+
+
+This setting is only available with the QtWebEngine backend.
+
+[[content.media.video_capture]]
+=== content.media.video_capture
+Allow websites to record video.
 
 This setting supports URL patterns.
 
@@ -3088,6 +3128,7 @@ Default:
 * +pass:[img]+
 * +pass:[link]+
 * +pass:[summary]+
+* +pass:[[contenteditable]:not([contenteditable=&quot;false&quot;])]+
 * +pass:[[onclick]]+
 * +pass:[[onmousedown]]+
 * +pass:[[role=&quot;link&quot;]]+
@@ -3116,6 +3157,7 @@ Default:
 * +pass:[input[type=&quot;url&quot;]]+
 * +pass:[input[type=&quot;week&quot;]]+
 * +pass:[input:not([type])]+
+* +pass:[[contenteditable]:not([contenteditable=&quot;false&quot;])]+
 * +pass:[textarea]+
 - +pass:[links]+:
 
@@ -3981,7 +4023,8 @@ The following placeholders are defined:
 * `{current_title}`: Title of the current web page.
 * `{title_sep}`: The string ` - ` if a title is set, empty otherwise.
 * `{index}`: Index of this tab.
-* `{aligned_index}`: Index of this tab padded with spaces to have the same width.
+* `{aligned_index}`: Index of this tab padded with spaces to have the same
+  width.
 * `{id}`: Internal tab ID of this tab.
 * `{scroll_pos}`: Page scroll position.
 * `{host}`: Host of the current web page.
@@ -4015,7 +4058,7 @@ Default: +pass:[true]+
 
 [[tabs.undo_stack_size]]
 === tabs.undo_stack_size
-Number of close tab actions to remember, per window (-1 for no maximum).
+Number of closed tabs (per window) and closed windows to remember for :undo (-1 for no maximum).
 
 Type: <<types,Int>>
 

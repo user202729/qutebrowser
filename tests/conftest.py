@@ -48,10 +48,12 @@ _qute_scheme_handler = None
 
 
 # Set hypothesis settings
-hypothesis.settings.register_profile('default',
-                                     hypothesis.settings(deadline=600))
-hypothesis.settings.register_profile('ci',
-                                     hypothesis.settings(deadline=None))
+hypothesis.settings.register_profile(
+    'default', hypothesis.settings(deadline=600))
+hypothesis.settings.register_profile(
+    'ci', hypothesis.settings(
+        deadline=None,
+        suppress_health_check=[hypothesis.HealthCheck.too_slow]))
 hypothesis.settings.load_profile('ci' if testutils.ON_CI else 'default')
 
 
@@ -316,8 +318,9 @@ def pytest_runtest_makereport(item, call):
 def pytest_terminal_summary(terminalreporter):
     """Group benchmark results on CI."""
     if testutils.ON_CI:
-        terminalreporter.write_line("::group::Benchmark results")
+        terminalreporter.write_line(
+            testutils.gha_group_begin('Benchmark results'))
         yield
-        terminalreporter.write_line("::endgroup")
+        terminalreporter.write_line(testutils.gha_group_end())
     else:
         yield

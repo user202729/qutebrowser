@@ -38,7 +38,7 @@ from qutebrowser.utils import (message, usertypes, log, qtutils, urlutils,
 from qutebrowser.utils.usertypes import KeyMode
 from qutebrowser.misc import editor, guiprocess, objects
 from qutebrowser.completion.models import urlmodel, miscmodels
-from qutebrowser.mainwindow import mainwindow
+from qutebrowser.mainwindow import mainwindow, windowundo
 
 
 class CommandDispatcher:
@@ -780,12 +780,22 @@ class CommandDispatcher:
                 text="Are you sure you want to close pinned tabs?")
 
     @cmdutils.register(instance='command-dispatcher', scope='window')
-    def undo(self):
-        """Re-open the last closed tab or tabs."""
+    def undo(self, window: bool = False) -> None:
+        """Re-open the last closed tab(s) or window.
+
+        Args:
+            window: Re-open the last closed window (and its tabs).
+        """
         try:
-            self._tabbed_browser.undo()
+            if window:
+                windowundo.instance.undo_last_window_close()
+            else:
+                self._tabbed_browser.undo()
         except IndexError:
-            raise cmdutils.CommandError("Nothing to undo!")
+            msg = "Nothing to undo"
+            if not window:
+                msg += " (use :undo --window to reopen a closed window)"
+            raise cmdutils.CommandError(msg)
 
     @cmdutils.register(instance='command-dispatcher', scope='window')
     @cmdutils.argument('count', value=cmdutils.Value.count)

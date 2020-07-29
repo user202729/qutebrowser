@@ -91,7 +91,7 @@ def pytest_runtest_makereport(item, call):
 
     output = []
     if testutils.ON_CI:
-        output.append('::group::Scenario')
+        output.append(testutils.gha_group_begin('Scenario'))
 
     output.append("{kw_color}Feature:{reset} {name}".format(
         kw_color=colors['keyword'],
@@ -119,7 +119,7 @@ def pytest_runtest_makereport(item, call):
         )
 
     if testutils.ON_CI:
-        output.append('::endgroup::')
+        output.append(testutils.gha_group_end())
 
     report.longrepr.addsection("BDD scenario", '\n'.join(output))
 
@@ -191,6 +191,11 @@ def clean_open_tabs(quteproc):
 def pdfjs_available(data_tmpdir):
     if not pdfjs.is_available():
         pytest.skip("No pdfjs installation found.")
+
+
+@bdd.given('I clear the log')
+def clear_log_lines(quteproc):
+    quteproc.clear_data()
 
 
 ## When

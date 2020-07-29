@@ -40,6 +40,7 @@ from qutebrowser.completion import completionwidget, completer
 from qutebrowser.keyinput import modeman
 from qutebrowser.browser import commands, downloadview, hints, downloads
 from qutebrowser.misc import crashsignal, keyhintwidget, sessions
+from qutebrowser.qt import sip
 
 
 win_id_gen = itertools.count(0)
@@ -105,7 +106,10 @@ def raise_window(window, alert=True):
     # WORKAROUND for https://bugreports.qt.io/browse/QTBUG-69568
     QCoreApplication.processEvents(  # type: ignore[call-overload]
         QEventLoop.ExcludeUserInputEvents | QEventLoop.ExcludeSocketNotifiers)
-    window.activateWindow()
+
+    if not sip.isdeleted(window):
+        # Could be deleted by the events run above
+        window.activateWindow()
 
     if alert:
         QApplication.instance().alert(window)
@@ -242,9 +246,9 @@ class MainWindow(QWidget):
         else:
             private = bool(private)
         self._private = private
-        self.tabbed_browser = tabbedbrowser.TabbedBrowser(win_id=self.win_id,
-                                                          private=private,
-                                                          parent=self)
+        self.tabbed_browser = tabbedbrowser.TabbedBrowser(
+            win_id=self.win_id, private=private, parent=self
+        )  # type: tabbedbrowser.TabbedBrowser
         objreg.register('tabbed-browser', self.tabbed_browser, scope='window',
                         window=self.win_id)
         self._init_command_dispatcher()
@@ -692,4 +696,6 @@ class MainWindow(QWidget):
 
         sessions.session_manager.save_last_window_session()
         self._save_geometry()
+
         log.destroy.debug("Closing window {}".format(self.win_id))
+        self.tabbed_browser.shutdown()

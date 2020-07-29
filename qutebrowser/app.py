@@ -39,6 +39,7 @@ blocks and spins the Qt mainloop.
 
 import os
 import sys
+import functools
 import tempfile
 import datetime
 import argparse
@@ -61,7 +62,7 @@ from qutebrowser.browser.webkit import cookies, cache
 from qutebrowser.browser.webkit.network import networkmanager
 from qutebrowser.extensions import loader
 from qutebrowser.keyinput import macros, eventfilter
-from qutebrowser.mainwindow import mainwindow, prompt
+from qutebrowser.mainwindow import mainwindow, prompt, windowundo
 from qutebrowser.misc import (ipc, savemanager, sessions, crashsignal,
                               earlyinit, sql, cmdhistory, backendproblem,
                               objects, quitter)
@@ -448,7 +449,6 @@ def _init_modules(*, args):
     cmdhistory.init()
     log.init.debug("Initializing sessions...")
     sessions.init(q_app)
-    quitter.instance.shutting_down.connect(sessions.shutdown)
 
     log.init.debug("Initializing websettings...")
     websettings.init(args)
@@ -480,6 +480,7 @@ def _init_modules(*, args):
 
     log.init.debug("Misc initialization...")
     macros.init()
+    windowundo.init()
     # Init backend-specific stuff
     browsertab.init()
 
@@ -491,9 +492,14 @@ class Application(QApplication):
     Attributes:
         _args: ArgumentParser instance.
         _last_focus_object: The last focused object's repr.
+
+    Signals:
+        new_window: A new window was created.
+        window_closing: A window is being closed.
     """
 
     new_window = pyqtSignal(mainwindow.MainWindow)
+    window_closing = pyqtSignal(mainwindow.MainWindow)
 
     def __init__(self, args):
         """Constructor.
@@ -517,6 +523,13 @@ class Application(QApplication):
         self.focusObjectChanged.connect(  # type: ignore[attr-defined]
             self.on_focus_object_changed)
         self.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+
+        self.new_window.connect(self._on_new_window)
+
+    @pyqtSlot(mainwindow.MainWindow)
+    def _on_new_window(self, window):
+        window.tabbed_browser.shutting_down.connect(functools.partial(
+            self.window_closing.emit, window))
 
     @pyqtSlot(QObject)
     def on_focus_object_changed(self, obj):
