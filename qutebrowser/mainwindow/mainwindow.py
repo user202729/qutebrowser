@@ -26,7 +26,7 @@ import functools
 import typing
 
 from PyQt5.QtCore import (pyqtSignal, pyqtSlot, QRect, QPoint, QTimer, Qt,
-                          QCoreApplication, QEventLoop)
+                          QCoreApplication, QEventLoop, QByteArray)
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QSizePolicy
 from PyQt5.QtGui import QPalette
 
@@ -46,49 +46,37 @@ from qutebrowser.qt import sip
 win_id_gen = itertools.count(0)
 
 
-def get_window(via_ipc, force_window=False, force_tab=False,
-               force_target=None, no_raise=False):
+def get_window(*, via_ipc: bool,
+               target: str,
+               no_raise: bool = False) -> int:
     """Helper function for app.py to get a window id.
 
     Args:
         via_ipc: Whether the request was made via IPC.
-        force_window: Whether to force opening in a window.
-        force_tab: Whether to force opening in a tab.
-        force_target: Override the new_instance_open_target config
+        target: Where/how to open the window (via setting, command-line or
+                override).
         no_raise: suppress target window raising
 
     Return:
         ID of a window that was used to open URL
     """
-    if force_window and force_tab:
-        raise ValueError("force_window and force_tab are mutually exclusive!")
-
     if not via_ipc:
         # Initial main window
         return 0
-
-    open_target = config.val.new_instance_open_target
-
-    # Apply any target overrides, ordered by precedence
-    if force_target is not None:
-        open_target = force_target
-    if force_window:
-        open_target = 'window'
-    if force_tab and open_target == 'window':
-        # Command sent via IPC
-        open_target = 'tab-silent'
 
     window = None
     should_raise = False
 
     # Try to find the existing tab target if opening in a tab
-    if open_target != 'window':
+    if target not in {'window', 'private-window'}:
         window = get_target_window()
-        should_raise = open_target not in ['tab-silent', 'tab-bg-silent']
+        should_raise = target not in {'tab-silent', 'tab-bg-silent'}
+
+    is_private = target == 'private-window'
 
     # Otherwise, or if no window was found, create a new one
     if window is None:
-        window = MainWindow(private=None)
+        window = MainWindow(private=is_private)
         window.show()
         should_raise = True
 
@@ -200,7 +188,10 @@ class MainWindow(QWidget):
         }
     """
 
-    def __init__(self, *, private, geometry=None, parent=None):
+    def __init__(self, *,
+                 private: bool,
+                 geometry: typing.Optional[QByteArray] = None,
+                 parent: typing.Optional[QWidget] = None) -> None:
         """Create a new main window.
 
         Args:
@@ -240,14 +231,10 @@ class MainWindow(QWidget):
         self._downloadview = downloadview.DownloadView(
             model=self._download_model)
 
-        if config.val.content.private_browsing:
-            # This setting always trumps what's passed in.
-            private = True
-        else:
-            private = bool(private)
-        self._private = private
+        self._private = config.val.content.private_browsing or private
+
         self.tabbed_browser = tabbedbrowser.TabbedBrowser(
-            win_id=self.win_id, private=private, parent=self
+            win_id=self.win_id, private=self._private, parent=self
         )  # type: tabbedbrowser.TabbedBrowser
         objreg.register('tabbed-browser', self.tabbed_browser, scope='window',
                         window=self.win_id)
@@ -256,7 +243,7 @@ class MainWindow(QWidget):
         # We need to set an explicit parent for StatusBar because it does some
         # show/hide magic immediately which would mean it'd show up as a
         # window.
-        self.status = bar.StatusBar(win_id=self.win_id, private=private,
+        self.status = bar.StatusBar(win_id=self.win_id, private=self._private,
                                     parent=self)
 
         self._add_widgets()

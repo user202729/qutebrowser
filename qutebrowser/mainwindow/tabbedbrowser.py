@@ -23,6 +23,7 @@ import collections
 import functools
 import weakref
 import typing
+import datetime
 
 import attr
 from PyQt5.QtWidgets import QSizePolicy, QWidget, QApplication
@@ -47,6 +48,7 @@ class _UndoEntry:
     history = attr.ib()
     index = attr.ib()
     pinned = attr.ib()
+    created_at = attr.ib(attr.Factory(datetime.datetime.now))
 
 
 class TabDeque:
@@ -495,7 +497,7 @@ class TabbedBrowser(QWidget):
 
             tab.deleteLater()
 
-    def undo(self):
+    def undo(self, depth=1):
         """Undo removing of a tab or tabs."""
         # Remove unused tab which may be created after the last tab is closed
         last_close = config.val.tabs.last_close
@@ -518,7 +520,10 @@ class TabbedBrowser(QWidget):
             use_current_tab = (only_one_tab_open and no_history and
                                last_close_url_used)
 
-        for entry in reversed(self.undo_stack.pop()):
+        entries = self.undo_stack[-depth]
+        del self.undo_stack[-depth]
+
+        for entry in reversed(entries):
             if use_current_tab:
                 newtab = self.widget.widget(0)
                 use_current_tab = False

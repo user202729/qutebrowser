@@ -992,6 +992,33 @@ Feature: Tab management
                 history:
                 - url: http://localhost:*/data/numbers/2.txt
 
+    # :undo with count
+
+    Scenario: Undo the second to last closed tab
+        When I open data/numbers/1.txt
+        And I open data/numbers/2.txt in a new tab
+        And I open data/numbers/3.txt in a new tab
+        And I run :tab-close
+        And I run :tab-close
+        And I run :undo with count 2
+        Then the following tabs should be open:
+            - data/numbers/1.txt
+            - data/numbers/3.txt (active)
+
+    Scenario: Undo with a too-high count
+        When I open data/numbers/1.txt
+        And I open data/numbers/2.txt in a new tab
+        And I run :tab-close
+        And I run :undo with count 100
+        Then the error "Nothing to undo" should be shown
+
+    Scenario: Undo with --window and count
+        When I run :undo --window with count 2
+        Then the error ":undo --window does not support a count/depth" should be shown
+
+    Scenario: Undo with --window and depth
+        When I run :undo --window 1
+        Then the error ":undo --window does not support a count/depth" should be shown
 
     # tabs.last_close
 

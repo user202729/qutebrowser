@@ -145,9 +145,12 @@ This updates `~/.local/share/qutebrowser/blocked-hosts` with downloaded host lis
 
 [[back]]
 === back
-Syntax: +:back [*--tab*] [*--bg*] [*--window*]+
+Syntax: +:back [*--tab*] [*--bg*] [*--window*] ['index']+
 
 Go back in the history of the current tab.
+
+==== positional arguments
+* +'index'+: Which page to go back to, count takes precedence.
 
 ==== optional arguments
 * +*-t*+, +*--tab*+: Go back in a new tab.
@@ -466,7 +469,7 @@ The index of the download to delete.
 
 [[download-open]]
 === download-open
-Syntax: +:download-open ['cmdline']+
+Syntax: +:download-open [*--dir*] ['cmdline']+
 
 Open the last/[count]th download.
 
@@ -477,6 +480,9 @@ If no specific command is given, this will use the system's default application 
  present, the filename is automatically appended to the
  cmdline.
 
+
+==== optional arguments
+* +*-d*+, +*--dir*+: Whether to open the file's directory instead.
 
 ==== count
 The index of the download to open.
@@ -567,9 +573,12 @@ Follow the selected text.
 
 [[forward]]
 === forward
-Syntax: +:forward [*--tab*] [*--bg*] [*--window*]+
+Syntax: +:forward [*--tab*] [*--bg*] [*--window*] ['index']+
 
 Go forward in the history of the current tab.
+
+==== positional arguments
+* +'index'+: Which page to go forward to, count takes precedence.
 
 ==== optional arguments
 * +*-t*+, +*--tab*+: Go forward in a new tab.
@@ -1467,12 +1476,20 @@ Unbind a keychain.
 
 [[undo]]
 === undo
-Syntax: +:undo [*--window*]+
+Syntax: +:undo [*--window*] ['depth']+
 
 Re-open the last closed tab(s) or window.
 
+==== positional arguments
+* +'depth'+: Same as `count` but as argument for completion, `count` takes precedence.
+
+
 ==== optional arguments
 * +*-w*+, +*--window*+: Re-open the last closed window (and its tabs).
+
+==== count
+How deep in the undo stack to find the tab or tabs to re-open.
+
 
 [[version]]
 === version

@@ -19,6 +19,7 @@
 
 """Functions that return miscellaneous completion models."""
 
+import datetime
 import typing
 
 from qutebrowser.config import config, configdata
@@ -215,4 +216,83 @@ def inspector_position(*, info):
     positions = [(e.name,) for e in inspector.Position]
     category = listcategory.ListCategory("Position (optional)", positions)
     model.add_category(category)
+    return model
+
+
+def _qdatetime_to_completion_format(qdate):
+    if not qdate.isValid():
+        ts = 0
+    else:
+        ts = qdate.toMSecsSinceEpoch()
+        if ts < 0:
+            ts = 0
+    pydate = datetime.datetime.fromtimestamp(ts / 1000)
+    return pydate.strftime(config.val.completion.timestamp_format)
+
+
+def _back_forward(info, go_forward):
+    history = info.cur_tab.history
+    current_idx = history.current_idx()
+    model = completionmodel.CompletionModel(column_widths=(5, 36, 50, 9))
+
+    if go_forward:
+        start = current_idx + 1
+        items = history.forward_items()
+    else:
+        start = 0
+        items = history.back_items()
+
+    entries = [
+        (
+            str(idx),
+            entry.url().toDisplayString(),
+            entry.title(),
+            _qdatetime_to_completion_format(entry.lastVisited())
+        )
+        for idx, entry in enumerate(items, start)
+    ]
+    if not go_forward:
+        # make sure the most recent is at the top for :back
+        entries.reverse()
+
+    cat = listcategory.ListCategory("History", entries, sort=False)
+    model.add_category(cat)
+    return model
+
+
+def forward(*, info):
+    """A model to complete on history of the current tab.
+
+    Used for the :forward command.
+    """
+    return _back_forward(info, go_forward=True)
+
+
+def back(*, info):
+    """A model to complete on history of the current tab.
+
+    Used for the :back command.
+    """
+    return _back_forward(info, go_forward=False)
+
+
+def undo(*, info):
+    """A model to complete undo entries."""
+    tabbed_browser = objreg.get('tabbed-browser', scope='window',
+                                window=info.win_id)
+    model = completionmodel.CompletionModel(column_widths=(6, 84, 10))
+    timestamp_format = config.val.completion.timestamp_format
+
+    entries = [
+        (
+            str(idx),
+            ', '.join(entry.url.toDisplayString() for entry in group),
+            group[-1].created_at.strftime(timestamp_format)
+        )
+        for idx, group in
+        enumerate(reversed(tabbed_browser.undo_stack), start=1)
+    ]
+
+    cat = listcategory.ListCategory("Closed tabs", entries)
+    model.add_category(cat)
     return model
