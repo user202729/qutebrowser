@@ -243,7 +243,7 @@ window._qutebrowser.webelem = (function() {
                 document.scrollingElement, null, "scrollable"));
         }
         scrollable_elts = scrollable_elts.concat(
-            Array.from(document.querySelectorAll("div,ol,ul,nav")).
+            Array.from(document.querySelectorAll("div,ol,ul")).
                 filter((elt) => elt.clientHeight < elt.scrollHeight &&
                         scroll.is_scrollable_y(elt)).
                 filter((elt) => !only_visible || is_visible(elt)).
