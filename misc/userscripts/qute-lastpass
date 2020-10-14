@@ -90,7 +90,10 @@ def pass_(domain, encoding):
 
     candidates = json.loads(process.stdout.decode(encoding).strip() or '[]')
     err = process.stderr.decode(encoding).strip()
-    if "couldn't resolve host name" in err.lower() and not no_sync:
+    if not no_sync and (
+            "couldn't resolve host name" in err.lower() or
+            "ssl peer certificate" in err.lower()  # this happens when there's a gateway login page
+            ):
         no_sync.append('--sync=no')
         return pass_(domain, encoding)
     if 'could not find specified account' in err.lower():
