@@ -114,6 +114,12 @@ def is_ignored_lowlevel_message(message):
         '*/QtWebEngineProcess: /lib/x86_64-linux-gnu/libdbus-1.so.3: no '
         'version information available (required by '
         '*/libQt5WebEngineCore.so.5)',
+
+        # hunter and Python 3.9
+        # https://github.com/ionelmc/python-hunter/issues/87
+        '<frozen importlib._bootstrap>:*: RuntimeWarning: builtins.type size changed, '
+        'may indicate binary incompatibility. Expected 872 from C header, got 880 from '
+        'PyObject',
     ]
     return any(testutils.pattern_match(pattern=pattern, value=message)
                for pattern in ignored_messages)
@@ -302,6 +308,14 @@ def is_ignored_chromium_message(line):
         'Could not open platform files for entry.',
         'Unable to terminate process *: No such process (3)',
         'Failed to read /proc/*/stat',
+
+        # Qt 5.15.1 debug build (Chromium 83)
+        # '[314297:7:0929/214605.491958:ERROR:context_provider_command_buffer.cc(145)]
+        # GpuChannelHost failed to create command buffer.'
+        'GpuChannelHost failed to create command buffer.',
+        # [338691:4:0929/220114.488847:WARNING:ipc_message_attachment_set.cc(49)]
+        # MessageAttachmentSet destroyed with unconsumed attachments: 0/1
+        'MessageAttachmentSet destroyed with unconsumed attachments: *',
     ]
     return any(testutils.pattern_match(pattern=pattern, value=message)
                for pattern in ignored_messages)
@@ -743,6 +757,7 @@ class QuteProc(testprocess.Process):
         Return:
             The parsed log line with "command called: ..." or None.
         """
+        __tracebackhide__ = lambda e: e.errisinstance(testprocess.WaitForTimeout)
         summary = command
         if count is not None:
             summary += ' (count {})'.format(count)

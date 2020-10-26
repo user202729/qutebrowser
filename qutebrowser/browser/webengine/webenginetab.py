@@ -29,7 +29,7 @@ from PyQt5.QtCore import (pyqtSignal, pyqtSlot, Qt, QPoint, QPointF, QUrl,
                           QTimer, QObject)
 from PyQt5.QtNetwork import QAuthenticator
 from PyQt5.QtWidgets import QApplication, QWidget
-from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineScript
+from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineScript, QWebEngineHistory
 
 from qutebrowser.config import configdata, config
 from qutebrowser.browser import (browsertab, eventfilter, shared, webelem,
@@ -38,7 +38,7 @@ from qutebrowser.browser.webengine import (webview, webengineelem, tabhistory,
                                            interceptor, webenginequtescheme,
                                            cookies, webenginedownloads,
                                            webenginesettings, certificateerror)
-from qutebrowser.misc import miscwidgets, objects
+from qutebrowser.misc import miscwidgets, objects, quitter
 from qutebrowser.utils import (usertypes, qtutils, log, javascript, utils,
                                message, objreg, jinja, debug)
 from qutebrowser.keyinput import modeman
@@ -74,6 +74,7 @@ def init():
     if webenginesettings.private_profile:
         download_manager.install(webenginesettings.private_profile)
     objreg.register('webengine-download-manager', download_manager)
+    quitter.instance.shutting_down.connect(download_manager.shutdown)
 
     log.init.debug("Initializing cookie filter...")
     cookies.install_filter(webenginesettings.default_profile)
@@ -535,6 +536,8 @@ class WebEngineCaret(browsertab.AbstractCaret):
             # This may happen if the user switches to another mode after
             # `:toggle-selection` is executed and before this callback function
             # is asynchronously called.
+            log.misc.debug("Ignoring caret selection callback in {}".format(
+                self._mode_manager.mode))
             return
         if state_str is None:
             message.error("Error toggling caret selection")
@@ -673,6 +676,10 @@ class WebEngineScroller(browsertab.AbstractScroller):
 class WebEngineHistoryPrivate(browsertab.AbstractHistoryPrivate):
 
     """History-related methods which are not part of the extension API."""
+
+    def __init__(self, tab: 'WebEngineTab') -> None:
+        self._tab = tab
+        self._history = typing.cast(QWebEngineHistory, None)
 
     def serialize(self):
         if not qtutils.version_check('5.9', compiled=False):
@@ -1394,14 +1401,19 @@ class WebEngineTab(browsertab.AbstractTab):
         fp = self._widget.focusProxy()
         if fp is not None:
             fp.installEventFilter(self._tab_event_filter)
+
         self._child_event_filter = eventfilter.ChildEventFilter(
             eventfilter=self._tab_event_filter,
             widget=self._widget,
-            win_id=self.win_id,
-            focus_workaround=qtutils.version_check(
-                '5.11', compiled=False, exact=True),
             parent=self)
         self._widget.installEventFilter(self._child_event_filter)
+
+        if qtutils.version_check('5.11', compiled=False, exact=True):
+            focus_event_filter = eventfilter.FocusWorkaroundEventFilter(
+                win_id=self.win_id,
+                widget=self._widget,
+                parent=self)
+            self._widget.installEventFilter(focus_event_filter)
 
     @pyqtSlot()
     def _restore_zoom(self):
@@ -1511,9 +1523,7 @@ class WebEngineTab(browsertab.AbstractTab):
             authenticator.setPassword(answer.password)
         else:
             try:
-                sip.assign(  # type: ignore[attr-defined]
-                    authenticator,
-                    QAuthenticator())
+                sip.assign(authenticator, QAuthenticator())
             except AttributeError:
                 self._show_error_page(url, "Proxy authentication required")
 
@@ -1534,8 +1544,7 @@ class WebEngineTab(browsertab.AbstractTab):
         if not netrc_success and answer is None:
             log.network.debug("Aborting auth")
             try:
-                sip.assign(  # type: ignore[attr-defined]
-                    authenticator, QAuthenticator())
+                sip.assign(authenticator, QAuthenticator())
             except AttributeError:
                 # WORKAROUND for
                 # https://www.riverbankcomputing.com/pipermail/pyqt/2016-December/038400.html
@@ -1550,6 +1559,11 @@ class WebEngineTab(browsertab.AbstractTab):
         self.search.clear()
         super()._on_load_started()
         self.data.netrc_used = False
+
+    @pyqtSlot('qint64')
+    def _on_renderer_process_pid_changed(self, pid):
+        log.webview.debug("Renderer process PID for tab {}: {}"
+                          .format(self.tab_id, pid))
 
     @pyqtSlot(QWebEnginePage.RenderProcessTerminationStatus, int)
     def _on_render_process_terminated(self, status, exitcode):
@@ -1832,11 +1846,15 @@ class WebEngineTab(browsertab.AbstractTab):
         page.loadFinished.connect(self._restore_zoom)
         page.loadFinished.connect(self._on_load_finished)
 
+        try:
+            page.renderProcessPidChanged.connect(self._on_renderer_process_pid_changed)
+        except AttributeError:
+            # Added in Qt 5.15.0
+            pass
+
         self.before_load_started.connect(self._on_before_load_started)
-        self.shutting_down.connect(
-            self.abort_questions)  # type: ignore[arg-type]
-        self.load_started.connect(
-            self.abort_questions)  # type: ignore[arg-type]
+        self.shutting_down.connect(self.abort_questions)
+        self.load_started.connect(self.abort_questions)
 
         # pylint: disable=protected-access
         self.audio._connect_signals()

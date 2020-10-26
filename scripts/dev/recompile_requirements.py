@@ -42,7 +42,12 @@ CHANGELOG_URLS = {
     'cherrypy': 'https://github.com/cherrypy/cherrypy/blob/master/CHANGES.rst',
     'pylint': 'http://pylint.pycqa.org/en/latest/whatsnew/changelog.html',
     'setuptools': 'https://github.com/pypa/setuptools/blob/master/CHANGES.rst',
-    'pytest-cov': 'https://github.com/pytest-dev/pytest-cov',
+    'pytest-cov': 'https://github.com/pytest-dev/pytest-cov/blob/master/CHANGELOG.rst',
+    'pytest-xdist': 'https://github.com/pytest-dev/pytest-xdist/blob/master/CHANGELOG.rst',
+    'pytest-forked': 'https://github.com/pytest-dev/pytest-forked/blob/master/CHANGELOG',
+    'execnet': 'https://execnet.readthedocs.io/en/latest/changelog.html',
+    'apipkg': 'https://github.com/pytest-dev/apipkg/blob/master/CHANGELOG',
+    'pytest-rerunfailures': 'https://github.com/pytest-dev/pytest-rerunfailures/blob/master/CHANGES.rst',
     'requests': 'https://github.com/psf/requests/blob/master/HISTORY.md',
     'requests-file': 'https://github.com/dashea/requests-file/blob/master/CHANGES.rst',
     'werkzeug': 'https://github.com/pallets/werkzeug/blob/master/CHANGES.rst',
@@ -101,7 +106,13 @@ CHANGELOG_URLS = {
     'pep517': 'https://github.com/pypa/pep517/commits/master',
     'cryptography': 'https://cryptography.io/en/latest/changelog/',
     'toml': 'https://github.com/uiri/toml/releases',
-    'pyqt': 'https://www.riverbankcomputing.com/',
+    'PyQt5': 'https://www.riverbankcomputing.com/news',
+    'PyQtWebEngine': 'https://www.riverbankcomputing.com/news',
+    'PyQt-builder': 'https://www.riverbankcomputing.com/news',
+    'PyQt5-sip': 'https://www.riverbankcomputing.com/news',
+    'PyQt5_stubs': 'https://github.com/stlehmann/PyQt5-stubs/blob/master/CHANGELOG.md',
+    'sip': 'https://www.riverbankcomputing.com/news',
+    'Pygments': 'https://pygments.org/docs/changelog/',
     'vulture': 'https://github.com/jendrikseipp/vulture/blob/master/CHANGELOG.md',
     'distlib': 'https://bitbucket.org/pypa/distlib/src/master/CHANGES.rst',
     'py-cpuinfo': 'https://github.com/workhorsy/py-cpuinfo/blob/master/ChangeLog',
@@ -110,6 +121,16 @@ CHANGELOG_URLS = {
     'chardet': 'https://github.com/chardet/chardet/releases',
     'idna': 'https://github.com/kjd/idna/blob/master/HISTORY.rst',
     'tldextract': 'https://github.com/john-kurkowski/tldextract/blob/master/CHANGELOG.md',
+    'typing_extensions': 'https://github.com/python/typing/commits/master/typing_extensions',
+    'diff_cover': 'https://github.com/Bachmann1234/diff_cover/blob/master/CHANGELOG',
+    'pytest-clarity': 'https://github.com/darrenburns/pytest-clarity/commits/master',
+    'pytest-icdiff': 'https://github.com/hjwp/pytest-icdiff/blob/master/HISTORY.rst',
+    'icdiff': 'https://github.com/jeffkaufman/icdiff/blob/master/ChangeLog',
+    'termcolor': 'https://pypi.org/project/termcolor/',
+    'pprintpp': 'https://github.com/wolever/pprintpp/blob/master/CHANGELOG.txt',
+    'beautifulsoup4': 'https://bazaar.launchpad.net/~leonardr/beautifulsoup/bs4/view/head:/CHANGELOG',
+    'check-manifest': 'https://github.com/mgedmin/check-manifest/blob/master/CHANGES.rst',
+    'yamllint': 'https://github.com/adrienverge/yamllint/blob/master/CHANGELOG.rst',
 }
 
 # PyQt versions which need SIP v4
@@ -264,8 +285,8 @@ class Change:
         self.name = name
         self.old = None
         self.new = None
-        if name.lower() in CHANGELOG_URLS:
-            self.url = CHANGELOG_URLS[name.lower()]
+        if name in CHANGELOG_URLS:
+            self.url = CHANGELOG_URLS[name]
             self.link = '[{}]({})'.format(self.name, self.url)
         else:
             self.url = '(no changelog)'
@@ -312,6 +333,11 @@ def print_changed_files():
 
         if '==' in line:
             name, version = line[1:].split('==')
+            if ';' in version:  # pip environment markers
+                version = version.split(';')[0].strip()
+        elif line[1:].startswith('-e'):
+            rest, name = line.split('#egg=')
+            version = rest.split('@')[1][:7]
         else:
             name = line[1:]
             version = '?'

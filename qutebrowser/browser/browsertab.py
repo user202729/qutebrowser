@@ -73,9 +73,11 @@ def create(win_id: int,
     if objects.backend == usertypes.Backend.QtWebEngine:
         from qutebrowser.browser.webengine import webenginetab
         tab_class = webenginetab.WebEngineTab  # type: typing.Type[AbstractTab]
-    else:
+    elif objects.backend == usertypes.Backend.QtWebKit:
         from qutebrowser.browser.webkit import webkittab
         tab_class = webkittab.WebKitTab
+    else:
+        raise utils.Unreachable(objects.backend)
     return tab_class(win_id=win_id, mode_manager=mode_manager, private=private,
                      parent=parent)
 
@@ -85,6 +87,8 @@ def init() -> None:
     if objects.backend == usertypes.Backend.QtWebEngine:
         from qutebrowser.browser.webengine import webenginetab
         webenginetab.init()
+        return
+    assert objects.backend == usertypes.Backend.QtWebKit, objects.backend
 
 
 class WebTabError(Exception):
@@ -616,11 +620,6 @@ class AbstractHistoryPrivate:
 
     """Private API related to the history."""
 
-    def __init__(self, tab: 'AbstractTab'):
-        self._tab = tab
-        self._history = typing.cast(
-            typing.Union['QWebHistory', 'QWebEngineHistory'], None)
-
     def serialize(self) -> bytes:
         """Serialize into an opaque format understood by self.deserialize."""
         raise NotImplementedError
@@ -642,7 +641,7 @@ class AbstractHistory:
         self._tab = tab
         self._history = typing.cast(
             typing.Union['QWebHistory', 'QWebEngineHistory'], None)
-        self.private_api = AbstractHistoryPrivate(tab)
+        self.private_api = AbstractHistoryPrivate()
 
     def __len__(self) -> int:
         raise NotImplementedError
@@ -895,6 +894,8 @@ class AbstractTab(QWidget):
     icon_changed = pyqtSignal(QIcon)
     #: Signal emitted when a page's title changed (new title as str)
     title_changed = pyqtSignal(str)
+    #: Signal emitted when this tab was pinned/unpinned (new pinned state as bool)
+    pinned_changed = pyqtSignal(bool)
     #: Signal emitted when a new tab should be opened (url as QUrl)
     new_tab_requested = pyqtSignal(QUrl)
     #: Signal emitted when a page's URL changed (url as QUrl)
@@ -1270,6 +1271,10 @@ class AbstractTab(QWidget):
 
     def set_html(self, html: str, base_url: QUrl = QUrl()) -> None:
         raise NotImplementedError
+
+    def set_pinned(self, pinned: bool) -> None:
+        self.data.pinned = pinned
+        self.pinned_changed.emit(pinned)
 
     def __repr__(self) -> str:
         try:
