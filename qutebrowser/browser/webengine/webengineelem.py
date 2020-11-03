@@ -146,7 +146,7 @@ class WebEngineElement(webelem.AbstractWebElement):
     def set_value(self, value: webelem.JsValueType) -> None:
         self._js_call('set_value', value)
 
-    def hint_reason(self) -> typing.Optional[str]:
+    def hint_reason(self) -> Optional[str]:
         return self._js_dict.get('hint_reason', None)
 
     def special_click_handler(self) -> bool:

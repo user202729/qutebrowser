@@ -26,7 +26,7 @@ import fnmatch
 import functools
 import glob
 import textwrap
-from typing import cast, List, Sequence
+from typing import cast, List, Sequence, Dict
 import enum
 
 import attr
@@ -64,24 +64,12 @@ class GreasemonkeyScript:
     def __init__(self, properties, code,  # noqa: C901 pragma: no mccabe
                  filename=None):
         self._code = code
-<<<<<<< HEAD
-        self.includes = []  # type: typing.Sequence[str]
-        self.matches = []  # type: typing.Sequence[str]
-        self.excludes = []  # type: typing.Sequence[str]
-        self.requires = []  # type: typing.Sequence[str]
-        self.resources = []  # type: typing.Sequence[_Resource]
-        self.resource_text = {}  # type: typing.Dict[str, str]
-||||||| a4d1b8834
-        self.includes = []  # type: typing.Sequence[str]
-        self.matches = []  # type: typing.Sequence[str]
-        self.excludes = []  # type: typing.Sequence[str]
-        self.requires = []  # type: typing.Sequence[str]
-=======
         self.includes: Sequence[str] = []
         self.matches: Sequence[str] = []
         self.excludes: Sequence[str] = []
         self.requires: Sequence[str] = []
->>>>>>> upstream/master
+        self.resources: Sequence[_Resource] = []
+        self.resource_text: Dict[str, str] = {}
         self.description = None
         self.namespace = None
         self.run_at = None

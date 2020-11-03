@@ -19,7 +19,7 @@
 
 """Generic web element related code."""
 
-from typing import cast, TYPE_CHECKING, Iterator, Optional, Set, Union
+from typing import cast, TYPE_CHECKING, Iterator, Optional, Set, Union, Tuple, List
 import collections.abc
 
 from PyQt5.QtCore import QUrl, Qt, QEvent, QTimer, QRect, QPoint
@@ -51,7 +51,7 @@ SPECIAL_SELECTOR_MAP = {
 }
 
 
-def css_selector(group: str, url: QUrl) -> typing.Tuple[str, typing.List[str]]:
+def css_selector(group: str, url: QUrl) -> Tuple[str, List[str]]:
     """Get CSS and special selectors for the given group/URL."""
     selectors = config.instance.get('hints.selectors', url)
     if group not in selectors:
@@ -61,8 +61,8 @@ def css_selector(group: str, url: QUrl) -> typing.Tuple[str, typing.List[str]]:
             raise Error("Undefined hinting group {!r}".format(group))
 
     selectors = selectors[group]
-    css_selectors = []  # type: typing.List[str]
-    special_selectors = []  # type: typing.List[str]
+    css_selectors = []  # type: List[str]
+    special_selectors = []  # type: List[str]
     for s in selectors:
         special_selector = SPECIAL_SELECTOR_MAP.get(s)
         if special_selector is not None:
@@ -138,7 +138,7 @@ class AbstractWebElement(collections.abc.MutableMapping):
         """Set the element value."""
         raise NotImplementedError
 
-    def hint_reason(self) -> typing.Optional[str]:
+    def hint_reason(self) -> Optional[str]:
         """Get the hint reason for this element. None if unknown."""
         # Needs to be overridden in subclasses.
         return None

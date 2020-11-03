@@ -573,7 +573,7 @@ def safe_display_string(qurl: QUrl) -> str:
     return qurl.toDisplayString()
 
 
-def extract_error_url(url: QUrl) -> typing.Optional[typing.Tuple[QUrl, str]]:
+def extract_error_url(url: QUrl) -> Optional[Tuple[QUrl, str]]:
     """Extract the original URL and the error message from a qute://error URL,
     or returns None if the input isn't one.
 

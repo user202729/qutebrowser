@@ -719,7 +719,7 @@ class AbstractElements:
                  callback: _MultiCallback,
                  error_cb: _ErrorCallback, *,
                  only_visible: bool = False,
-                 special_classes: typing.Sequence[str] = ()) -> None:
+                 special_classes: Sequence[str] = ()) -> None:
         """Find all HTML elements matching a given selector async.
 
         If there's an error, the callback is called with a webelem.Error
@@ -962,10 +962,10 @@ class AbstractTab(QWidget):
             self, parent=self)
         self.backend: Optional[usertypes.Backend] = None
 
-        self._last_history_url = None  # type: typing.Optional[QUrl]
-        self._last_history_atime = None  # type: typing.Optional[int]
-        self._last_history_title = None  # type: typing.Optional[str]
-        self._last_history_requested_url = None  # type: typing.Optional[QUrl]
+        self._last_history_url = None  # type: Optional[QUrl]
+        self._last_history_atime = None  # type: Optional[int]
+        self._last_history_title = None  # type: Optional[str]
+        self._last_history_requested_url = None  # type: Optional[QUrl]
 
         # If true, this tab has been requested to be removed (or is removed).
         self.pending_removal = False
@@ -1168,7 +1168,7 @@ class AbstractTab(QWidget):
 
             atime = int(time.time())
 
-            no_formatting = typing.cast(QUrl.FormattingOptions,
+            no_formatting = cast(QUrl.FormattingOptions,
                                         QUrl.UrlFormattingOption(0))
             if any(u is not None and
                    requested_url.matches(u, no_formatting)
