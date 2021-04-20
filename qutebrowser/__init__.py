@@ -31,3 +31,6 @@ __version_info__ = tuple(int(part) for part in __version__.split('.'))
 __description__ = "A keyboard-driven, vim-like browser based on PyQt5."
 
 basedir = os.path.dirname(os.path.realpath(__file__))
+
+import faulthandler
+faulthandler.enable()
